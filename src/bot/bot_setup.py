@@ -1,11 +1,10 @@
 # src/bot/bot_setup.py
 from telegram.ext import Application, MessageHandler, filters, CommandHandler, ConversationHandler
-from telegram import Update # Importa Update para a tipagem do conv_handler
 from src.bot.commands import (
     start_command, help_command, balanco_command, gastos_por_categoria_command,
     categorias_command, adicionar_categoria_command, definir_limite_command,
     adicionar_alias_command, total_categoria_command, total_por_pagamento_command,
-    gastos_mensal_combinado_command, listar_gastos_command
+    gastos_mensal_combinado_command, listar_gastos_command # <-- NOVOS COMANDOS IMPORTADOS
 )
 from src.bot.handlers import (
     handle_initial_message, handle_category_clarification, handle_new_category_name, 
@@ -13,17 +12,10 @@ from src.bot.handlers import (
     HANDLE_INITIAL_MESSAGE, ASKING_CATEGORY_CLARIFICATION, ASKING_NEW_CATEGORY_NAME, 
     ASKING_PAYMENT_METHOD, ASKING_CONFIRMATION, ASKING_CORRECTION
 )
-from src.config import TELEGRAM_BOT_TOKEN # Ainda precisamos do token do bot aqui
+from src.config import TELEGRAM_BOT_TOKEN
 
-# --- Variáveis para Configuração do Webhook ---
-# Estes são placeholders. O PythonAnywhere vai te dar a URL real.
-# Você precisará do seu username do PythonAnywhere aqui.
-PYTHONANYWHERE_USERNAME = "SEU_USUARIO_PYTHONANYWHERE" # <-- SUBSTITUA AQUI!
-WEBHOOK_PATH_SUFFIX = "/webhook" # Onde o Telegram vai enviar as mensagens
-WEBHOOK_URL = f"https://{PYTHONANYWHERE_USERNAME}.pythonanywhere.com{WEBHOOK_PATH_SUFFIX}"
-
-def setup_and_run_bot(config: dict) -> Application: # Retorna Application para o WSGI
-    """Configura a aplicação do bot do Telegram para Webhooks."""
+def setup_and_run_bot(config: dict):
+    """Configura e inicia a aplicação do bot do Telegram."""
     application = Application.builder().token(config["TELEGRAM_BOT_TOKEN"]).build()
 
     application.bot_data['supabase_client'] = config["SUPABASE_CLIENT"]
@@ -39,8 +31,8 @@ def setup_and_run_bot(config: dict) -> Application: # Retorna Application para o
     application.add_handler(CommandHandler("adicionar_alias", adicionar_alias_command))
     application.add_handler(CommandHandler("total_categoria", total_categoria_command))
     application.add_handler(CommandHandler("total_por_pagamento", total_por_pagamento_command))
-    application.add_handler(CommandHandler("gastos_mensal_combinado", gastos_mensal_combinado_command))
-    application.add_handler(CommandHandler("listar_gastos", listar_gastos_command))
+    application.add_handler(CommandHandler("gastos_mensal_combinado", gastos_mensal_combinado_command)) # NOVO COMANDO REGISTRADO
+    application.add_handler(CommandHandler("listar_gastos", listar_gastos_command)) # NOVO COMANDO REGISTRADO
 
     # Configura o ConversationHandler
     conv_handler = ConversationHandler(
@@ -65,8 +57,9 @@ def setup_and_run_bot(config: dict) -> Application: # Retorna Application para o
         fallbacks=[CommandHandler("cancel", lambda update, context: ConversationHandler.END)],
     )
     application.add_handler(conv_handler)
-    
-    # NÃO RODAMOS application.run_polling() AQUI!
-    # A aplicação será rodada pelo servidor WSGI do PythonAnywhere.
-    print("Bot Telegram configurado para Webhooks. Pronto para ser rodado pelo WSGI.")
-    return application # Retorna a aplicação configurada
+
+    print(f"Bot Telegram iniciado! Procure por @<nome_do_seu_bot> no Telegram e comece a conversar.")
+    print("Certifique-se de que o Ollama está rodando e o modelo 'llama3' (ou o que você configurou) está baixado.")
+    print("Verifique também se suas credenciais do Supabase estão corretas e as tabelas 'gastos', 'ganhos', 'categorias' e 'formas_pagamento' foram criadas.")
+
+    application.run_polling()

@@ -49,11 +49,7 @@ def filter_gastos_data(gastos_data: List[Dict[str, Any]],
         df = df[df['data'] >= start_date]
     if data_fim:
         end_date = pd.to_datetime(data_fim)
-        # Se a data fim for o último dia do mês, garantimos que inclui o dia inteiro
-        if end_date.day == (end_date + pd.Timedelta(days=1)).day -1: # Verifica se é o último dia do mês
-             end_date = end_date.replace(hour=23, minute=59, second=59)
-        df = df[df['data'] <= end_date]
-
+        df = df[df['data'] <= end_date] # Filtra até o final do dia
 
     return df.to_dict(orient='records')
 
@@ -123,7 +119,8 @@ def generate_balance_chart(supabase_client: Client,
         color=[COLORS['Ganho'], COLORS['Gasto'], COLORS['Balanço']]
     )
 
-    plt.title('Balanço Mensal: Ganhos vs. Gastos', fontsize=16, fontweight='bold')
+    period_title = _get_period_title(data_inicio, data_fim)
+    plt.title(f'Balanço Mensal{period_title}: Ganhos vs. Gastos', fontsize=16, fontweight='bold')
     plt.ylabel('Valor (R$)', fontsize=12)
     plt.xlabel('Mês/Ano', fontsize=12)
     plt.xticks(rotation=45, ha='right', fontsize=10)
@@ -303,15 +300,11 @@ def generate_payment_method_spending_chart(supabase_client: Client,
         return None
 
     plt.figure(figsize=(10, 7))
-    # AQUI ESTÁ A CORREÇÃO: Remova 'cmap' e use 'colors' para a paleta de cores
-    # Mapeia as cores da paleta para as formas de pagamento que existem
-    colors_for_pie = [COLORS['Fatias_Variadas'][i % len(COLORS['Fatias_Variadas'])] for i in range(len(gastos_por_forma))]
-
     ax = gastos_por_forma.plot(
         kind='pie', 
         autopct=lambda p: f'R${(p*sum(gastos_por_forma)/100):.2f}', 
         startangle=90, 
-        colors=colors_for_pie, # <-- Use 'colors' em vez de 'cmap'
+        cmap='Paired',
         pctdistance=0.85
     )
     
@@ -326,7 +319,7 @@ def generate_payment_method_spending_chart(supabase_client: Client,
     plt.tight_layout()
     plt.axis('equal')
 
-    wedges, texts, autotexts = ax.pie(gastos_por_forma, autopct='', startangle=90, colors=colors_for_pie) # <-- Use 'colors' aqui também
+    wedges, texts, autotexts = ax.pie(gastos_por_forma, autopct='', startangle=90, cmap='Paired')
     labels = [f"{name}: R${value:.2f}" for name, value in gastos_por_forma.items()]
     ax.legend(wedges, labels,
               title="Forma de Pagamento",
@@ -402,14 +395,10 @@ def generate_monthly_category_payment_chart(supabase_client: Client,
         return None
     
     plt.figure(figsize=(15, 8))
-    # Para usar colormap, precisamos de um objeto colormap, não uma string para a maioria das versões mais antigas
-    # Ou podemos pegar cores do COLORS['Fatias_Variadas'] se houver poucas formas de pagamento.
-    # Para um colormap genérico, `cmap=plt.cm.get_cmap('viridis')` seria a forma correta se Matplotlib for mais antigo.
-    # Mas como 'Paired' funcionou antes, vamos manter 'viridis' para este e esperar que seja compatível
     ax = pivot_table.plot(
         kind='bar', 
         stacked=True, 
-        colormap='viridis', # Mantendo colormap aqui, geralmente funciona bem em barras
+        colormap='viridis',
         ax=plt.gca()
     )
 
