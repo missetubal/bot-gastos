@@ -1,62 +1,85 @@
 # src/bot/handlers.py
-import datetime
-from typing import Union, Dict, Any, List
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
+import datetime
+from typing import Union, Dict, Any, List
 
-from src.core import ai 
+from src.core.ai import extract_transaction_info, extract_correction_from_llama # <-- extract_correction_from_llama já está importado aqui
 from src.core import db
 from src.utils.text_utils import to_camel_case
 from src.core import charts
 
 # --- Estados da Conversa ---
 HANDLE_INITIAL_MESSAGE = 0
-ASKING_CATEGORY_CLARIFICATION = 1
-ASKING_NEW_CATEGORY_NAME = 2
-ASKING_PAYMENT_METHOD = 3
-ASKING_CONFIRMATION = 4
-ASKING_CORRECTION = 5
+ASKING_CATEGORY_CLARIFICATION = 1 # Estado para quando a categoria não é clara
+ASKING_NEW_CATEGORY_NAME = 2      # Estado para quando o usuário decide criar uma nova categoria
+ASKING_PAYMENT_METHOD = 3         # Estado para quando a forma de pagamento não é clara
+ASKING_CONFIRMATION = 4           # Estado para confirmar a transação final
+ASKING_CORRECTION = 5             # Estado para quando o usuário quer corrigir a transação
 
-# --- Funções Auxiliares (para não repetir código) ---
+# --- Funções Auxiliares ---
 async def _send_confirmation_message(update: Update, context: ContextTypes.DEFAULT_TYPE, transaction_info: Dict[str, Any]) -> None:
-    """Envia a mensagem de confirmação da transação ao usuário com emojis."""
+    """Envia a mensagem de confirmação da transação ao usuário com emojis e formatação."""
     supabase_client = context.bot_data['supabase_client']
     valor_fmt = f"R${transaction_info['valor']:.2f}"
     data_fmt = transaction_info['data']
     
-    # Resolva o nome real da categoria
     categoria_nome_real = transaction_info.get('categoria_nome_db') or transaction_info.get('categoria')
     if transaction_info.get('categoria_id') and not transaction_info.get('categoria_nome_db'):
         cat_info = next((c for c in db.get_categorias(supabase_client) if c['id'] == transaction_info['categoria_id']), None)
         if cat_info:
             categoria_nome_real = cat_info['nome']
     
-    # Resolva o nome real da forma de pagamento
     forma_pagamento_nome_real = transaction_info.get('forma_pagamento_nome_real') or transaction_info.get('forma_pagamento_text')
     if transaction_info.get('forma_pagamento_id') and not transaction_info.get('forma_pagamento_nome_real'):
         fp_info = next((f for f in db.get_formas_pagamento(supabase_client) if f['id'] == transaction_info['forma_pagamento_id']), None)
         if fp_info:
             forma_pagamento_nome_real = fp_info['nome']
 
-    descricao_gasto_fmt = f" ({transaction_info.get('descricao_gasto', 'sem detalhes')})" if transaction_info.get('descricao_gasto') else ""
+    descricao_gasto_fmt = f"({transaction_info.get('descricao_gasto', 'sem detalhes')})" if transaction_info.get('descricao_gasto') else ""
+
+    emoji = ""
+    # Emojis para categorias
+    if categoria_nome_real.lower() == 'alimentacao':
+        emoji = "🍔"
+    elif categoria_nome_real.lower() == 'transporte':
+        emoji = "🚌"
+    elif categoria_nome_real.lower() == 'moradia':
+        emoji = "🏠"
+    elif categoria_nome_real.lower() == 'lazer':
+        emoji = "🎉"
+    elif categoria_nome_real.lower() == 'saude':
+        emoji = "💊"
+    elif categoria_nome_real.lower() == 'educacao':
+        emoji = "📚"
+    elif categoria_nome_real.lower() == 'compras':
+        emoji = "🛍️"
+    elif categoria_nome_real.lower() == 'outros':
+        emoji = "🤷‍♀️"
+    else:
+        emoji = "💸" # Emoji genérico para outros gastos
 
     message_text = ""
     if transaction_info['transaction_type'] == 'gasto':
         message_text = (
-            f"💸 Entendi que você teve um *gasto de {valor_fmt}{descricao_gasto_fmt}* "
-            f"na categoria *{categoria_nome_real}* 🛍️, "
-            f"em *{data_fmt}* 📅, via *{forma_pagamento_nome_real or 'Não Informado'}*."
+            f"Confirma o *gasto*? {emoji}\n"
+            f"💰 Valor: *{valor_fmt}* {descricao_gasto_fmt}\n"
+            f"🏷️ Categoria: *{categoria_nome_real}*\n"
+            f"📅 Data: *{data_fmt}*\n"
+            f"💳 Forma de Pagamento: *{forma_pagamento_nome_real or 'Não Informado'}*"
         )
     elif transaction_info['transaction_type'] == 'ganho':
+        emoji = "💰"
         message_text = (
-            f"💰 Que maravilha! Você registrou um *ganho de {valor_fmt}* "
-            f"referente a *{transaction_info.get('descricao')}* ✨, "
-            f"em *{data_fmt}* 📅."
+            f"Confirma o *ganho*? {emoji}\n"
+            f"💰 Valor: *{valor_fmt}*\n"
+            f"📝 Descrição: *{transaction_info.get('descricao')}*\n"
+            f"📅 Data: *{data_fmt}*"
         )
     
-    keyboard = [["Sim ✅", "Não ❌"]] # Adicionado emojis nos botões também
+    keyboard = [["Sim ✅", "Não ❌"]]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    await update.message.reply_text(f"{message_text}\n\n*Está tudo certinho?* 🤔", reply_markup=reply_markup, parse_mode='Markdown')
+    await update.message.reply_text(f"{message_text}\n\n*Tudo certo?* 🤔", reply_markup=reply_markup, parse_mode='Markdown')
 
 
 async def _register_gasto(update: Update, context: ContextTypes.DEFAULT_TYPE, transaction_info: Dict[str, Any]) -> None:
@@ -75,7 +98,6 @@ async def _register_gasto(update: Update, context: ContextTypes.DEFAULT_TYPE, tr
             f"✅ Gasto de R${valor:.2f} ({descricao_gasto}) em '{categoria_nome_db}' via '{final_payment_method_name}' registrado com sucesso! 🎉",
             reply_markup=ReplyKeyboardRemove()
         )
-        # Adiciona alias para a categoria se necessário
         original_category_text = transaction_info.get('original_category_text')
         if original_category_text and original_category_text.lower() != categoria_nome_db.lower():
             current_aliases = set()
@@ -115,7 +137,7 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
     if not user_message:
         return ConversationHandler.END # Não faz nada se a mensagem for vazia
 
-    parsed_info: Union[Dict[str, Any], None] = ai.extract_transaction_info(user_message, supabase_client)
+    parsed_info: Union[Dict[str, Any], None] = extract_transaction_info(user_message, supabase_client)
 
     if not parsed_info:
         await update.message.reply_text(
@@ -166,14 +188,11 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
                 'transaction_type': 'gasto'
             })
             
-            # Tenta resolver categoria e forma de pagamento ANTES da confirmação
-            # Lógica de Categoria
             categoria_id = db.get_categoria_id_by_text(supabase_client, categoria_texto_llama)
             if categoria_id:
                 context.user_data['pending_transaction']['categoria_id'] = categoria_id
                 context.user_data['pending_transaction']['categoria_nome_db'] = next((cat['nome'] for cat in db.get_categorias(supabase_client) if cat['id'] == categoria_id), categoria_texto_llama)
             else:
-                # Se não encontrou, volta para o estado de clarificação de categoria
                 similar_categories = db.find_similar_categories(supabase_client, categoria_texto_llama)
                 context.user_data['pending_transaction']['suggestions'] = similar_categories
                 
@@ -186,9 +205,8 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
                     f"Ou você pode 'Criar nova categoria ➕' ou 'Não se aplica / Outra 🤷‍♀️'.",
                     reply_markup=reply_markup
                 )
-                return ASKING_CATEGORY_CLARIFICATION # Entra no estado de clarificação
+                return ASKING_CATEGORY_CLARIFICATION
             
-            # Lógica de Forma de Pagamento (somente se a categoria já foi resolvida)
             forma_pagamento_id = None
             forma_pagamento_nome_real = None
             if forma_pagamento_text:
@@ -201,7 +219,6 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
                         break
             
             if not forma_pagamento_id:
-                # Se não identificou a FP, guarda como pendente e passa para o estado de FP
                 formas_pagamento_disponiveis = db.get_formas_pagamento(supabase_client)
                 keyboard_options = [[fp['nome']] for fp in formas_pagamento_disponiveis]
                 keyboard_options.append(["Outro / Não sei ❓"])
@@ -210,14 +227,12 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
                     "💳 Qual foi a forma de pagamento?",
                     reply_markup=reply_markup
                 )
-                return ASKING_PAYMENT_METHOD # Entra no estado de pedir FP
-
-            # Se tudo foi resolvido pelo Llama, vai direto para a confirmação
+                return ASKING_PAYMENT_METHOD
+            
             context.user_data['pending_transaction']['forma_pagamento_id'] = forma_pagamento_id
             context.user_data['pending_transaction']['forma_pagamento_nome_real'] = forma_pagamento_nome_real
             
         elif intencao == 'ganho':
-            # Para ganhos, as informações são mais simples, vai direto para confirmação
             valor = float(parsed_info['valor'])
             data = parsed_info.get('data', str(datetime.date.today()))
             descricao = parsed_info.get('descricao', 'Diversos')
@@ -228,17 +243,13 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
                 'transaction_type': 'ganho'
             })
             
-        # Se chegou até aqui, as informações da transação estão no user_data,
-        # e não precisamos de mais clarificações (categoria ou FP)
         await _send_confirmation_message(update, context, context.user_data['pending_transaction'])
-        return ASKING_CONFIRMATION # Pede confirmação
+        return ASKING_CONFIRMATION
 
-    # --- Lógica para Mostrar Gráficos ---
     elif intencao in ['mostrar_balanco', 'mostrar_grafico_gastos_categoria', 'mostrar_grafico_gastos_por_pagamento', 'mostrar_grafico_mensal_combinado']:
         data_inicio = parsed_info.get('data_inicio')
         data_fim = parsed_info.get('data_fim')
         
-        # Para gráficos com filtro de FP ou Categoria, resolve os IDs
         forma_pagamento_id = None
         categoria_id = None
         
@@ -269,11 +280,10 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
             chart_buffer = charts.generate_monthly_category_payment_chart(supabase_client, data_inicio=data_inicio, data_fim=data_fim)
             title = "Gastos Mensais Combinados"
 
-        else: # Isso não deve acontecer com a lógica do Llama
+        else:
             await update.message.reply_text("🤔 Não consegui identificar o tipo de gráfico. Use `/help` para ver as opções. 💡")
             return ConversationHandler.END
 
-        # Envia o gráfico
         if chart_buffer:
             await update.message.reply_photo(photo=chart_buffer, caption=f"📊 Aqui está seu gráfico de {title}:")
         else:
@@ -288,7 +298,6 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
         )
         return ConversationHandler.END
 
-# --- Handlers para os Estados da Conversa ---
 
 async def handle_category_clarification(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Lida com a resposta do usuário à clarificação da categoria."""
@@ -342,7 +351,6 @@ async def handle_category_clarification(update: Update, context: ContextTypes.DE
                     forma_pagamento_nome_real = fp['nome']
                     break
         
-        # Se a forma de pagamento NÃO foi resolvida (pelo Llama ou pela resposta do usuário)
         if not forma_pagamento_id:
             formas_pagamento_disponiveis = db.get_formas_pagamento(supabase_client)
             keyboard_options = [[fp['nome']] for fp in formas_pagamento_disponiveis]
@@ -401,7 +409,6 @@ async def handle_new_category_name(update: Update, context: ContextTypes.DEFAULT
             context.user_data['pending_transaction']['categoria_id'] = categoria_id
             context.user_data['pending_transaction']['categoria_nome_db'] = new_category_name_camel_case
             
-            # Categoria criada e resolvida. Agora verifica a forma de pagamento.
             forma_pagamento_id = None
             forma_pagamento_nome_real = None
             if forma_pagamento_text:
@@ -460,7 +467,8 @@ async def handle_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
             try:
                 response_add_fp = supabase_client.table('formas_pagamento').insert({'nome': final_payment_method_name}).execute()
                 if response_add_fp.data:
-                    forma_pagamento_id = response_add_fp.data[0]['id']
+                    # Supabase `insert` retorna uma lista de dicionários, pegue o ID do primeiro elemento
+                    forma_pagamento_id = response_add_fp.data[0]['id'] 
                     await update.message.reply_text(f"✨ Forma de pagamento '{final_payment_method_name}' adicionada para uso futuro! 💳", reply_markup=ReplyKeyboardRemove())
                 else:
                     await update.message.reply_text(f"⚠️ Não foi possível adicionar a forma de pagamento '{final_payment_method_name}'. Usando 'Não Informado'. 😕", reply_markup=ReplyKeyboardRemove())
@@ -501,8 +509,8 @@ async def handle_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     elif user_response == 'não ❌' or user_response == 'não' or user_response == 'nao':
         await update.message.reply_text(
-            "Entendido! 🤔 O que precisa ser alterado? "
-            "Por favor, digite o campo e o novo valor. "
+            "Entendido! 🤔 O que precisa ser alterado? \n"
+            "Por favor, digite o campo e o novo valor. \n"
             "Exemplos: 'Categoria Lazer 🛍️', 'Valor 60.50 💰', 'Data 2025-07-01 📅', 'Forma Pix 💳', 'Descricao Jantar de Aniversário 🎂'.",
             reply_markup=ReplyKeyboardRemove()
         )
@@ -529,11 +537,11 @@ async def handle_correction(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return ConversationHandler.END
 
     # Extrai o campo e o novo valor da correção usando o Llama
-    correction_parsed = ai.extract_correction_from_llama(correction_text)
+    correction_parsed = ai.extract_correction_from_llama(correction_text) # <-- CORREÇÃO AQUI
 
     if not correction_parsed:
         await update.message.reply_text(
-            "Não consegui entender a correção. 😕 Por favor, tente novamente no formato 'Campo Valor'. "
+            "Não consegui entender a correção. 😕 Por favor, tente novamente no formato 'Campo Valor'. \n"
             "Exemplos: 'Categoria Lazer 🛍️', 'Valor 60.50 💰', 'Data 2025-07-01 📅', 'Forma Pix 💳', 'Descricao Jantar 🍽️'.",
             reply_markup=ReplyKeyboardRemove() # Remove keyboard se não entendeu
         )
@@ -544,7 +552,7 @@ async def handle_correction(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     if not campo or novo_valor is None:
         await update.message.reply_text(
-            "Não consegui identificar o campo e o novo valor da correção. 🤔 "
+            "Não consegui identificar o campo e o novo valor da correção. 🤔 \n"
             "Exemplos: 'Categoria Lazer 🛍️', 'Valor 60.50 💰'.",
             reply_markup=ReplyKeyboardRemove()
         )
@@ -560,7 +568,8 @@ async def handle_correction(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             return ASKING_CORRECTION
     elif campo.lower() == 'data':
         try:
-            datetime.datetime.strptime(str(novo_valor), '%Y-%m-%d') # Valida o formato
+            # Valida o formato e atualiza o pending_transaction
+            datetime.datetime.strptime(str(novo_valor), '%Y-%m-%d')
             pending_transaction['data'] = str(novo_valor)
             await update.message.reply_text("Data atualizada! 📅")
         except ValueError:
@@ -596,8 +605,9 @@ async def handle_correction(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             pending_transaction['transaction_type'] = novo_valor.lower()
             # Ajusta campos específicos se mudar de tipo
             if novo_valor.lower() == 'gasto':
-                pending_transaction.pop('descricao', None)
+                pending_transaction.pop('descricao', None) # Remove 'descricao' de ganho
                 if 'categoria_id' not in pending_transaction: pending_transaction['categoria_id'] = None
+                pending_transaction['descricao_gasto'] = pending_transaction.get('descricao_gasto') or "" # Garante que tem a chave para gasto
             else: # ganho
                 pending_transaction.pop('categoria_id', None)
                 pending_transaction.pop('forma_pagamento_id', None)
