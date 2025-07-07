@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python/
+venv_bot_gastos/
+.env
+
+# Data
+data/
+# Se você gerar imagens e não quiser versioná-las
+*.png
+*.jpg
