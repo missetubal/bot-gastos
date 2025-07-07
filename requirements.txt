@@ -4,3 +4,4 @@ matplotlib
 supabase
 requests
 python-dotenv
+google-generativeai

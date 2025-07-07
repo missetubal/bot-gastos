@@ -1,36 +1,52 @@
 # src/core/ai.py
-import requests
+import requests # Ainda pode ser útil para outras requisições HTTP, mas não para o Gemini
 import json
 import datetime
 from typing import Dict, Any, Union, List
-from supabase import Client # Importar Client para a tipagem
+from supabase import Client # Para tipagem
 
-from src.config import OLLAMA_API_URL, OLLAMA_MODEL
+# Importações para Gemini
+import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold # Para segurança
 
-def ask_llama(prompt: str, model: str = OLLAMA_MODEL) -> str:
-    """Envia um prompt para o modelo Llama via Ollama API local."""
-    headers = {"Content-Type": "application/json"}
-    data = {
-        "model": model,
-        "prompt": prompt,
-        "stream": False
-    }
+from src.config import GOOGLE_API_KEY, GEMINI_MODEL # <-- NOVAS VARIÁVEIS IMPORTADAS
+
+# Configura a API do Gemini
+genai.configure(api_key=GOOGLE_API_KEY)
+
+# Ajustes de segurança para o Gemini (recomendado para bots)
+# Bloqueia conteúdo que pode ser considerado perigoso em algumas categorias
+safety_settings = {
+    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+}
+
+# Altera a função ask_llama para usar o Gemini
+def ask_llama(prompt: str, model: str = GEMINI_MODEL) -> str:
+    """Envia um prompt para o modelo Gemini."""
     try:
-        response = requests.post(OLLAMA_API_URL, headers=headers, data=json.dumps(data))
-        response.raise_for_status()
-        return response.json()['response']
-    except requests.exceptions.RequestException as e:
-        print(f"Erro ao conectar com Ollama: {e}")
-        return "Desculpe, não consegui processar sua requisição agora. O Llama está offline ou o modelo não está disponível?"
+        model_instance = genai.GenerativeModel(model_name=model, safety_settings=safety_settings)
+        # O generate_content pode receber texto puro
+        response = model_instance.generate_content(prompt)
+        
+        # O Gemini pode retornar um erro se a resposta for bloqueada ou vazia
+        if response._result.usage_metadata.prompt_token_count == 0:
+             print(f"DEBUG Gemini: Resposta vazia ou bloqueada. Raw: {response.text}")
+             return "Modelo de IA retornou uma resposta vazia ou bloqueada."
+        
+        return response.text.strip()
+    except Exception as e:
+        print(f"Erro ao conectar com Gemini: {e}")
+        return "Desculpe, não consegui processar sua requisição agora. O modelo de IA está offline ou indisponível."
+
 
 def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[str, Any], None]:
     """
-    Extrai informações de uma transação (gasto ou ganho) ou um comando de adicionar categoria/mostrar gráfico usando o Llama.
-    Retorna um dicionário com 'intencao', e outros dados relevantes.
+    Extrai informações da mensagem do usuário (gasto, ganho, add_categoria, gráficos, ou edição de gasto).
     """
-    # Importação local para evitar ciclo
-    from src.core.db import get_categorias
-    
+    # Calcula as datas reais e pega as categorias existentes
     today_str = datetime.date.today().strftime("%Y-%m-%d")
     yesterday_str = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
     two_days_ago_str = (datetime.date.today() - datetime.timedelta(days=2)).strftime("%Y-%m-%d")
@@ -43,12 +59,13 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
     last_month_start_str = last_month_start_date.strftime("%Y-%m-%d")
     last_month_end_str = last_month_end_date.strftime("%Y-%m-%d")
 
-    # Pega as categorias existentes usando o cliente passado
+    # Pega as categorias existentes para passar ao Llama (agora Gemini)
     try:
-        existing_categories_data = get_categorias(supabase_client) # Passa o cliente para get_categorias
+        from src.core.db import get_categorias # Importação local para evitar ciclo
+        existing_categories_data = get_categorias(supabase_client)
         existing_category_names = [cat['nome'] for cat in existing_categories_data]
     except Exception as e:
-        print(f"Erro ao obter categorias para o prompt do Llama: {e}")
+        print(f"Erro ao obter categorias para o prompt do Gemini: {e}")
         existing_category_names = ["Alimentacao", "Transporte", "Moradia", "Lazer", "Saude", "Educacao", "Outros"] # Fallback
 
     categories_list_str = ", ".join(existing_category_names)
@@ -66,6 +83,7 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
     - Mostrar o gráfico de gastos por categoria (com ou sem filtros)
     - Mostrar o gráfico de gastos por forma de pagamento (com ou sem filtros)
     - Mostrar o gráfico de gastos mensais por categoria e forma de pagamento (combinado)
+    - Editar um gasto existente
 
     Formato JSON:
     - Para "gasto": {{"intencao": "gasto", "valor": float, "categoria": "...", "data": "AAAA-MM-DD", "forma_pagamento": "..." (ou null), "descricao_gasto": "..."}}
@@ -76,6 +94,8 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
         - {{"intencao": "mostrar_grafico_gastos_categoria", "forma_pagamento": "..." (ou null), "data_inicio": "AAAA-MM-DD" (ou null), "data_fim": "AAAA-MM-DD" (ou null)}}
         - {{"intencao": "mostrar_grafico_gastos_por_pagamento", "categoria": "..." (ou null), "data_inicio": "AAAA-MM-DD" (ou null), "data_fim": "AAAA-MM-DD" (ou null)}}
         - {{"intencao": "mostrar_grafico_mensal_combinado", "data_inicio": "AAAA-MM-DD" (ou null), "data_fim": "AAAA-MM-DD" (ou null)}}
+    - Para "edicao_gasto": {{"intencao": "edicao_gasto", "valor": float (ou null), "categoria": "..." (ou null), "data": "AAAA-MM-DD" (ou null), "descricao_gasto": "..." (ou null)}}
+        (Extraia o máximo de informações para identificar o gasto a ser editado)
 
     Detalhes de extração:
     - A **data** e **data_inicio/data_fim** devem estar sempre no formato **AAAA-MM-DD**. Se não for mencionada, use a data de **hoje**.
@@ -83,12 +103,19 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
     - O valor e limite_mensal devem ser números float. Se limite_mensal não for especificado, use null.
     - A forma_pagamento deve ser uma string como "crédito", "débito", "pix", "dinheiro" ou null.
     - **descricao_gasto** deve ser uma string curta e clara que descreve o item ou a atividade do gasto.
+    - Para gastos, a **categoria** deve ser **OBRIGATORIAMENTE** uma das seguintes, ou a mais próxima delas: {categories_list_str}. Se nenhuma se encaixar bem, use "Outros".
 
     ---
     Exemplos de Gasto:
     Usuário: gastei 50 reais no mercado
     Resposta: {{"intencao": "gasto", "valor": 50.0, "categoria": "Alimentacao", "data": "{today_str}", "forma_pagamento": null, "descricao_gasto": "Compras no mercado"}}
 
+    Exemplos de Edição de Gasto:
+    Usuário: edite o gasto de 15 reais no Uber de ontem
+    Resposta: {{"intencao": "edicao_gasto", "valor": 15.0, "categoria": "Transporte", "data": "{yesterday_str}", "descricao_gasto": "Uber"}}
+
+    Usuário: corrigir o gasto de 10/07 na Avatim
+    Resposta: {{"intencao": "edicao_gasto", "data": "{datetime.date(2025, 7, 10).strftime('%Y-%m-%d')}", "descricao_gasto": "Avatim", "categoria": null, "valor": null}}
     Usuário: 35 de passagem de ônibus no débito ontem
     Resposta: {{"intencao": "gasto", "valor": 35.0, "categoria": "Transporte", "data": "{yesterday_str}", "forma_pagamento": "débito", "descricao_gasto": "Passagem de ônibus"}}
 
@@ -119,8 +146,8 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
     ---
     JSON de Saída:
     """
-    response_text = ask_llama(prompt)
-    print(f"DEBUG Llama response raw: {response_text}")
+    response_text = ask_llama(prompt) # Renomeado para ask_llama
+    print(f"DEBUG Gemini response raw: {response_text}")
 
     try:
         json_start = response_text.find('{')
@@ -139,12 +166,12 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
                         data[key] = None
             return data
     except (json.JSONDecodeError, ValueError) as e:
-        print(f"Erro ao decodificar JSON ou converter valor do Llama: {e}. Resposta bruta: {response_text}")
+        print(f"Erro ao decodificar JSON ou converter valor do Gemini: {e}. Resposta bruta: {response_text}")
     return None
 
 def suggest_category_from_llama(text_from_llama: str, existing_categories: List[str], supabase_client: Client) -> Union[str, None]:
     """
-    Pede ao Llama para mapear um termo de categoria para uma das categorias existentes.
+    Pede ao Gemini para mapear um termo de categoria para uma das categorias existentes.
     existing_categories deve ser uma lista de nomes de categorias em CamelCase.
     """
     if not existing_categories:
@@ -175,8 +202,8 @@ def suggest_category_from_llama(text_from_llama: str, existing_categories: List[
     Lista de Categorias: {categories_str}
     Resposta:
     """
-    response = ask_llama(prompt)
-    print(f"DEBUG Llama suggestion response raw: {response}")
+    response = ask_llama(prompt) # Renomeado para ask_llama
+    print(f"DEBUG Gemini suggestion response raw: {response}")
     cleaned_response = response.strip()
     
     if cleaned_response != "NENHUMA" and cleaned_response in existing_categories:
@@ -184,10 +211,9 @@ def suggest_category_from_llama(text_from_llama: str, existing_categories: List[
     
     return None
 
-# NOVA FUNÇÃO: extrair correção
 def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
     """
-    Pede ao Llama para extrair o campo e o novo valor de uma mensagem de correção.
+    Pede ao Gemini para extrair o campo e o novo valor de uma mensagem de correção.
     """
     prompt = f"""
     Sua única tarefa é extrair o campo a ser corrigido e o novo valor da mensagem do usuário.
@@ -219,8 +245,8 @@ def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
     ---
     JSON de Saída:
     """
-    response_text = ask_llama(prompt)
-    print(f"DEBUG Llama correction raw: {response_text}")
+    response_text = ask_llama(prompt) # Renomeado para ask_llama
+    print(f"DEBUG Gemini correction raw: {response_text}")
 
     try:
         json_start = response_text.find('{')
@@ -236,5 +262,5 @@ def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
                     pass
             return data
     except (json.JSONDecodeError, ValueError) as e:
-        print(f"Erro ao decodificar JSON de correção do Llama: {e}. Resposta bruta: {response_text}")
+        print(f"Erro ao decodificar JSON de correção do Gemini: {e}. Resposta bruta: {response_text}")
     return None
