@@ -5,7 +5,12 @@ from src.bot.commands import (
     categorias_command, adicionar_categoria_command, definir_limite_command,
     adicionar_alias_command, total_categoria_command, total_por_pagamento_command
 )
-from src.bot.handlers import handle_message, handle_category_clarification, handle_new_category_name, handle_payment_method, ASKING_CATEGORY_CLARIFICATION, ASKING_NEW_CATEGORY_NAME, ASKING_PAYMENT_METHOD
+from src.bot.handlers import (
+    handle_initial_message, handle_category_clarification, handle_new_category_name, 
+    handle_payment_method, handle_confirmation, handle_correction, # <-- NOVOS HANDLERS
+    HANDLE_INITIAL_MESSAGE, ASKING_CATEGORY_CLARIFICATION, ASKING_NEW_CATEGORY_NAME, 
+    ASKING_PAYMENT_METHOD, ASKING_CONFIRMATION, ASKING_CORRECTION # <-- NOVOS ESTADOS
+)
 from src.config import TELEGRAM_BOT_TOKEN
 
 def setup_and_run_bot(config: dict):
@@ -26,10 +31,14 @@ def setup_and_run_bot(config: dict):
     application.add_handler(CommandHandler("total_categoria", total_categoria_command))
     application.add_handler(CommandHandler("total_por_pagamento", total_por_pagamento_command))
 
-    # Configura o ConversationHandler
+    # Configura o ConversationHandler principal para transações
     conv_handler = ConversationHandler(
-        entry_points=[MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)],
+        # A entrada da conversa é qualquer mensagem de texto que não seja um comando
+        entry_points=[MessageHandler(filters.TEXT & ~filters.COMMAND, handle_initial_message)],
+        
+        # Estados da conversa e seus handlers correspondentes
         states={
+            # handle_initial_message pode levar a um desses estados ou terminar a conversa
             ASKING_CATEGORY_CLARIFICATION: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_category_clarification)
             ],
@@ -39,7 +48,15 @@ def setup_and_run_bot(config: dict):
             ASKING_PAYMENT_METHOD: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_payment_method)
             ],
+            ASKING_CONFIRMATION: [ # Novo estado de confirmação
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_confirmation)
+            ],
+            ASKING_CORRECTION: [ # Novo estado de correção
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_correction)
+            ],
         },
+        # Fallbacks: O que fazer se a conversa não se encaixar em nenhum estado
+        # Geralmente, encerra a conversa ou mostra uma mensagem de erro.
         fallbacks=[CommandHandler("cancel", lambda update, context: ConversationHandler.END)],
     )
     application.add_handler(conv_handler)

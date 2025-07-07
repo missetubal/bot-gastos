@@ -2,11 +2,7 @@
 from supabase import create_client, Client
 from src.config import SUPABASE_URL, SUPABASE_KEY
 from typing import Union, List, Dict, Any
-from src.core.ai import suggest_category_from_llama
 from src.utils.text_utils import to_camel_case
-
-# NOTA: O cliente Supabase NÃO é inicializado globalmente neste arquivo.
-# Ele será criado em main.py e passado como argumento para as funções DB.
 
 def get_supabase_client() -> Client:
     """Retorna uma instância do cliente Supabase."""
@@ -60,7 +56,7 @@ def get_gastos(supabase_client: Client) -> list:
         for gasto in response.data:
             gasto_copy = gasto.copy()
             # Pega o nome da categoria
-            if 'categorias' in gasto_copy and 'nome' in gasto_copy['categorias']:
+            if 'categorias' in gasto_copy and gasto_copy['categorias'] and 'nome' in gasto_copy['categorias']:
                 gasto_copy['categoria_nome'] = gasto_copy['categorias']['nome']
             else:
                 gasto_copy['categoria_nome'] = 'Desconhecida'
@@ -179,10 +175,13 @@ def find_similar_categories(supabase_client: Client, text: str) -> List[Dict[str
     primeiro por sugestão do Llama, depois por correspondência parcial.
     Retorna uma lista de dicionários {id, nome}.
     """
+    # Importação local para evitar ciclo
+    from src.core.ai import suggest_category_from_llama # Importa AQUI
+    
     categorias_do_banco = get_categorias(supabase_client)
     existing_category_names = [cat['nome'] for cat in categorias_do_banco]
     
-    llama_suggestion_name = suggest_category_from_llama(text, existing_category_names)
+    llama_suggestion_name = suggest_category_from_llama(text, existing_category_names, supabase_client)
     
     if llama_suggestion_name:
         for cat in categorias_do_banco:
