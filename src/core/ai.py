@@ -85,6 +85,8 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
         - {{"intencao": "mostrar_grafico_mensal_combinado", "data_inicio": "AAAA-MM-DD" (ou null), "data_fim": "AAAA-MM-DD" (ou null)}}
     - Para "edicao_gasto": {{"intencao": "edicao_gasto", "valor": float (ou null), "categoria": "..." (ou null), "data": "AAAA-MM-DD" (ou null), "descricao_gasto": "..." (ou null)}}
         (Extraia o máximo de informações para identificar o gasto a ser editado)
+    - Para "listar_gastos_detalhados": {{"intencao": "listar_gastos_detalhados", "categoria": "..." (ou null), "data_inicio": "AAAA-MM-DD" (ou null), "data_fim": "AAAA-MM-DD" (ou null)}} 
+
 
     Detalhes de extração:
     - A **data** e **data_inicio/data_fim** devem estar sempre no formato **AAAA-MM-DD**. Se não for mencionada, use a data de **hoje**.
@@ -129,6 +131,16 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
 
     Usuário: gráfico de gastos por categoria e pagamento de agosto
     Resposta: {{"intencao": "mostrar_grafico_mensal_combinado", "data_inicio": "2025-08-01", "data_fim": "2025-08-31"}} # NOVO EXEMPLO AQUI
+
+   Exemplos de Listar Gastos Detalhados: # <--- NOVOS EXEMPLOS
+    Usuário: liste meus gastos de julho
+    Resposta: {{"intencao": "listar_gastos_detalhados", "categoria": null, "data_inicio": "2025-07-01", "data_fim": "2025-07-31"}}
+
+    Usuário: listar gastos de transporte no mês passado
+    Resposta: {{"intencao": "listar_gastos_detalhados", "categoria": "Transporte", "data_inicio": "{last_month_start_str}", "data_fim": "{last_month_end_str}"}}
+
+    Usuário: quais foram meus gastos com alimentação
+    Resposta: {{"intencao": "listar_gastos_detalhados", "categoria": "Alimentacao", "data_inicio": null, "data_fim": null}}
 
     ---
     Mensagem do Usuário: {text}

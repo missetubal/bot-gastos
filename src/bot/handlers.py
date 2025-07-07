@@ -292,7 +292,63 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
             await update.message.reply_text(f"📉 Ainda não tenho dados suficientes para gerar este gráfico. Registre mais transações primeiro! 📝")
         
         return ConversationHandler.END
+    elif intencao == 'listar_gastos_detalhados':
+            categoria_texto_llama = parsed_info.get('categoria')
+            data_inicio = parsed_info.get('data_inicio')
+            data_fim = parsed_info.get('data_fim')
 
+            gastos_filtrados = []
+            period_title = ""
+
+            # Lógica para filtrar por categoria, se fornecida
+            categoria_id = None
+            if categoria_texto_llama:
+                categoria_id = db.get_categoria_id_by_text(supabase_client, categoria_texto_llama)
+                if not categoria_id:
+                    await update.message.reply_text(f"⚠️ Categoria '{categoria_texto_llama}' não reconhecida. Listando todos os gastos no período.")
+            
+            # Lógica para filtrar por data, se fornecida
+            gastos_data_raw = db.get_gastos(supabase_client) # Pega todos os gastos
+            gastos_filtrados = charts.filter_gastos_data(gastos_data_raw, categoria_id=categoria_id, data_inicio=data_inicio, data_fim=data_fim)
+            
+            # Constrói o título do período/categoria para a mensagem
+            if data_inicio and data_fim:
+                start_date_obj = datetime.datetime.strptime(data_inicio, '%Y-%m-%d')
+                end_date_obj = datetime.datetime.strptime(data_fim, '%Y-%m-%d')
+                if start_date_obj.day == 1 and end_date_obj.day == (end_date_obj + datetime.timedelta(days=1)).day - 1 and start_date_obj.month == end_date_obj.month and start_date_obj.year == end_date_obj.year:
+                    period_title = f" do mês de {start_date_obj.strftime('%B/%Y').capitalize()}"
+                else:
+                    period_title = f" de {start_date_obj.strftime('%d/%m/%Y')} a {end_date_obj.strftime('%d/%m/%Y')}"
+            
+            if categoria_id and not period_title: # Se filtrou só por categoria
+                 categoria_nome_real = next((cat['nome'] for cat in db.get_categorias(supabase_client) if cat['id'] == categoria_id), categoria_texto_llama)
+                 period_title = f" da categoria {categoria_nome_real}"
+            elif not categoria_id and not period_title: # Se não teve filtro
+                 period_title = " (Todos os Gastos)"
+
+
+            if gastos_filtrados:
+                message = f"**Detalhes dos Gastos{period_title}:**\n\n"
+                total_sum = 0.0
+                gastos_filtrados_sorted = sorted(gastos_filtrados, key=lambda x: x['data'], reverse=True)
+                
+                for gasto in gastos_filtrados_sorted:
+                    valor_fmt = f"R${gasto['valor']:.2f}"
+                    data_fmt = gasto['data'].strftime('%Y-%m-%d') # Formata para string
+                    categoria_nome = gasto.get('categoria_nome', 'Desconhecida')
+                    forma_pagamento_nome = gasto.get('forma_pagamento_nome', 'Não Informado')
+                    descricao = gasto.get('descricao', 'Sem descrição')
+                    
+                    message += (
+                        f"• {valor_fmt} {descricao} ({categoria_nome} - {forma_pagamento_nome}) em {data_fmt}\n"
+                    )
+                    total_sum += gasto['valor']
+                
+                message += f"\n**Total: R${total_sum:.2f}**"
+                await update.message.reply_text(message, parse_mode='Markdown')
+            else:
+                await update.message.reply_text(f"Nenhum gasto encontrado{period_title} com os critérios fornecidos. 🤷‍♀️")
+            return ConversationHandler.END
     else:
         await update.message.reply_text(
             "🤔 Não consegui entender sua intenção. Por favor, tente descrever claramente "
