@@ -2,7 +2,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv() # Carrega as variáveis do arquivo .env
+load_dotenv()
 
 # Configurações do Telegram
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -11,10 +11,9 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# Configurações do Ollama (Llama local)
-OLLAMA_API_URL = os.getenv("OLLAMA_API_URL")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL") # Ex: "llama3" ou "tinyllama"
+# Configurações do Ollama (Llama local) - REVERTIDAS
+OLLAMA_API_URL = os.getenv("OLLAMA_API_URL") # <-- RE-ADICIONADA
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")     # <-- RE-ADICIONADA
 
-# Configurações do Gemini API
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") # <-- NOVA VARIÁVEL
-GEMINI_MODEL = "gemini-pro"
+# REMOVIDO: GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+# REMOVIDO: GEMINI_MODEL = "gemini-pro"
