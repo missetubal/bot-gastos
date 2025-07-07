@@ -55,7 +55,6 @@ def add_gasto(supabase_client: Client, valor: float, categoria_id: str, data: st
 def get_gastos(supabase_client: Client) -> list:
     """Obtém todos os gastos do Supabase."""
     try:
-        # ATENÇÃO AQUI: Mudado para 'formas_pagamento(nome)' (plural)
         response = supabase_client.table('gastos').select('valor,categoria_id,data,descricao,formas_pagamento(nome),categorias(nome)').order('data', desc=True).execute()
         gastos_formatados = []
         for gasto in response.data:
@@ -68,7 +67,6 @@ def get_gastos(supabase_client: Client) -> list:
             del gasto_copy['categorias']
 
             # Pega o nome da forma de pagamento
-            # ATENÇÃO AQUI: Mudado para 'formas_pagamento' (plural) para extrair o nome
             if 'formas_pagamento' in gasto_copy and gasto_copy['formas_pagamento'] and 'nome' in gasto_copy['formas_pagamento']:
                 gasto_copy['forma_pagamento_nome'] = gasto_copy['formas_pagamento']['nome']
             else:
