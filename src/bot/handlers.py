@@ -4,18 +4,18 @@ from telegram.ext import ContextTypes, ConversationHandler
 import datetime
 from typing import Union, Dict, Any, List
 
-from src.core.ai import extract_transaction_info, extract_correction_from_llama # <-- extract_correction_from_llama já está importado aqui
+from src.core.ai import extract_transaction_info, extract_correction_from_llama # <--- Certifique-se que extract_correction_from_llama está importado
 from src.core import db
 from src.utils.text_utils import to_camel_case
 from src.core import charts
 
 # --- Estados da Conversa ---
 HANDLE_INITIAL_MESSAGE = 0
-ASKING_CATEGORY_CLARIFICATION = 1 # Estado para quando a categoria não é clara
-ASKING_NEW_CATEGORY_NAME = 2      # Estado para quando o usuário decide criar uma nova categoria
-ASKING_PAYMENT_METHOD = 3         # Estado para quando a forma de pagamento não é clara
-ASKING_CONFIRMATION = 4           # Estado para confirmar a transação final
-ASKING_CORRECTION = 5             # Estado para quando o usuário quer corrigir a transação
+ASKING_CATEGORY_CLARIFICATION = 1
+ASKING_NEW_CATEGORY_NAME = 2
+ASKING_PAYMENT_METHOD = 3
+ASKING_CONFIRMATION = 4
+ASKING_CORRECTION = 5
 
 # --- Funções Auxiliares ---
 async def _send_confirmation_message(update: Update, context: ContextTypes.DEFAULT_TYPE, transaction_info: Dict[str, Any]) -> None:
@@ -40,22 +40,24 @@ async def _send_confirmation_message(update: Update, context: ContextTypes.DEFAU
 
     emoji = ""
     # Emojis para categorias
-    if categoria_nome_real.lower() == 'alimentacao':
+    if categoria_nome_real and categoria_nome_real.lower() == 'alimentacao':
         emoji = "🍔"
-    elif categoria_nome_real.lower() == 'transporte':
+    elif categoria_nome_real and categoria_nome_real.lower() == 'transporte':
         emoji = "🚌"
-    elif categoria_nome_real.lower() == 'moradia':
+    elif categoria_nome_real and categoria_nome_real.lower() == 'moradia':
         emoji = "🏠"
-    elif categoria_nome_real.lower() == 'lazer':
+    elif categoria_nome_real and categoria_nome_real.lower() == 'lazer':
         emoji = "🎉"
-    elif categoria_nome_real.lower() == 'saude':
+    elif categoria_nome_real and categoria_nome_real.lower() == 'saude':
         emoji = "💊"
-    elif categoria_nome_real.lower() == 'educacao':
+    elif categoria_nome_real and categoria_nome_real.lower() == 'educacao':
         emoji = "📚"
-    elif categoria_nome_real.lower() == 'compras':
+    elif categoria_nome_real and categoria_nome_real.lower() == 'compras':
         emoji = "🛍️"
-    elif categoria_nome_real.lower() == 'outros':
+    elif categoria_nome_real and categoria_nome_real.lower() == 'outros':
         emoji = "🤷‍♀️"
+    elif categoria_nome_real and categoria_nome_real.lower() == 'desconhecida':
+        emoji = "❓"
     else:
         emoji = "💸" # Emoji genérico para outros gastos
 
@@ -66,7 +68,7 @@ async def _send_confirmation_message(update: Update, context: ContextTypes.DEFAU
             f"💰 Valor: *{valor_fmt}* {descricao_gasto_fmt}\n"
             f"🏷️ Categoria: *{categoria_nome_real}*\n"
             f"📅 Data: *{data_fmt}*\n"
-            f"💳 Forma de Pagamento: *{forma_pagamento_nome_real or 'Não Informado'}*"
+            f"💳 Pagamento: *{forma_pagamento_nome_real or 'Não Informado'}*"
         )
     elif transaction_info['transaction_type'] == 'ganho':
         emoji = "💰"
@@ -537,7 +539,7 @@ async def handle_correction(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return ConversationHandler.END
 
     # Extrai o campo e o novo valor da correção usando o Llama
-    correction_parsed = ai.extract_correction_from_llama(correction_text) # <-- CORREÇÃO AQUI
+    correction_parsed = extract_correction_from_llama(correction_text) # <-- CORREÇÃO AQUI
 
     if not correction_parsed:
         await update.message.reply_text(

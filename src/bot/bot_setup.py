@@ -3,13 +3,14 @@ from telegram.ext import Application, MessageHandler, filters, CommandHandler, C
 from src.bot.commands import (
     start_command, help_command, balanco_command, gastos_por_categoria_command,
     categorias_command, adicionar_categoria_command, definir_limite_command,
-    adicionar_alias_command, total_categoria_command, total_por_pagamento_command
+    adicionar_alias_command, total_categoria_command, total_por_pagamento_command,
+    gastos_mensal_combinado_command, listar_gastos_command # <-- NOVOS COMANDOS IMPORTADOS
 )
 from src.bot.handlers import (
     handle_initial_message, handle_category_clarification, handle_new_category_name, 
-    handle_payment_method, handle_confirmation, handle_correction, # <-- NOVOS HANDLERS
+    handle_payment_method, handle_confirmation, handle_correction, 
     HANDLE_INITIAL_MESSAGE, ASKING_CATEGORY_CLARIFICATION, ASKING_NEW_CATEGORY_NAME, 
-    ASKING_PAYMENT_METHOD, ASKING_CONFIRMATION, ASKING_CORRECTION # <-- NOVOS ESTADOS
+    ASKING_PAYMENT_METHOD, ASKING_CONFIRMATION, ASKING_CORRECTION
 )
 from src.config import TELEGRAM_BOT_TOKEN
 
@@ -30,15 +31,13 @@ def setup_and_run_bot(config: dict):
     application.add_handler(CommandHandler("adicionar_alias", adicionar_alias_command))
     application.add_handler(CommandHandler("total_categoria", total_categoria_command))
     application.add_handler(CommandHandler("total_por_pagamento", total_por_pagamento_command))
+    application.add_handler(CommandHandler("gastos_mensal_combinado", gastos_mensal_combinado_command)) # NOVO COMANDO REGISTRADO
+    application.add_handler(CommandHandler("listar_gastos", listar_gastos_command)) # NOVO COMANDO REGISTRADO
 
-    # Configura o ConversationHandler principal para transações
+    # Configura o ConversationHandler
     conv_handler = ConversationHandler(
-        # A entrada da conversa é qualquer mensagem de texto que não seja um comando
         entry_points=[MessageHandler(filters.TEXT & ~filters.COMMAND, handle_initial_message)],
-        
-        # Estados da conversa e seus handlers correspondentes
         states={
-            # handle_initial_message pode levar a um desses estados ou terminar a conversa
             ASKING_CATEGORY_CLARIFICATION: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_category_clarification)
             ],
@@ -48,15 +47,13 @@ def setup_and_run_bot(config: dict):
             ASKING_PAYMENT_METHOD: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_payment_method)
             ],
-            ASKING_CONFIRMATION: [ # Novo estado de confirmação
+            ASKING_CONFIRMATION: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_confirmation)
             ],
-            ASKING_CORRECTION: [ # Novo estado de correção
+            ASKING_CORRECTION: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_correction)
             ],
         },
-        # Fallbacks: O que fazer se a conversa não se encaixar em nenhum estado
-        # Geralmente, encerra a conversa ou mostra uma mensagem de erro.
         fallbacks=[CommandHandler("cancel", lambda update, context: ConversationHandler.END)],
     )
     application.add_handler(conv_handler)
