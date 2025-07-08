@@ -1,0 +1,9 @@
+# render.yaml
+services:
+  - type: web
+    name: bot-gastos-telegram # O nome do seu serviço no Render
+    env: python
+    # ESPECIFICA A VERSÃO DO PYTHON AQUI
+    pythonVersion: 3.12.0 # Ou 3.11.0. Escolha 3.12.0 para ser mais moderno, mas compatível.
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn src.main:wsgi_app --timeout 120
