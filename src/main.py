@@ -7,8 +7,8 @@ from src.bot.bot_setup import setup_and_run_bot
 from src.core.db import get_supabase_client
 
 from flask import Flask, request, jsonify
-from telegram import Update # Import Update for handling incoming webhooks
-from telegram.ext import Application # Import Application for WSGI typing
+from telegram import Update
+from telegram.ext import Application # Import Application for type hinting
 
 print("DEBUG: Iniciando src/main.py")
 
@@ -30,29 +30,25 @@ try:
     ptb_application = setup_and_run_bot(config)
     print("DEBUG: Aplicação do bot (python-telegram-bot) configurada.")
 
-
     # --- Setup the Flask web application ---
     flask_app = Flask(__name__)
 
-    # Flag para garantir que initialize() seja chamado apenas uma vez
-    _application_initialized_flag = False
-
-    @flask_app.before_first_request
-    async def initialize_ptb_application():
-        global _application_initialized_flag # Modifica a flag global
-        if not _application_initialized_flag:
-            print("DEBUG: Inicializando python-telegram-bot Application via Flask before_first_request...")
-            await ptb_application.initialize()
-            _application_initialized_flag = True
-            print("DEBUG: python-telegram-bot Application inicializada.")
+    # Flag para garantir que ptb_application.initialize() seja chamado apenas uma vez
+    _application_initialized_flag = False # Variável global
 
     WEBHOOK_PATH_SUFFIX = "/webhook" 
     
     @flask_app.route(WEBHOOK_PATH_SUFFIX, methods=['POST'])
     async def telegram_webhook():
-        # A inicialização já deve ter ocorrido em before_first_request
-        # Não precisamos mais do 'nonlocal' ou 'global' aqui para a flag
-        
+        global _application_initialized_flag # <--- DECLARA COMO GLOBAL AQUI
+
+        # Inicialize o PTB application se ele não foi inicializado ainda
+        if not _application_initialized_flag:
+            print("DEBUG: Inicializando python-telegram-bot Application para webhook (primeira requisição)...")
+            await ptb_application.initialize() # <--- CHAMADA AQUI
+            _application_initialized_flag = True
+            print("DEBUG: python-telegram-bot Application inicializada.")
+            
         if not request.is_json:
             print("ERROR: Webhook received non-JSON request.")
             return jsonify({"status": "error", "message": "Request must be JSON"}), 400
@@ -77,4 +73,4 @@ except Exception as e:
     print(f"ERROR: Erro crítico durante a inicialização em src/main.py: {e}", file=sys.stderr)
     import traceback
     traceback.print_exc(file=sys.stderr)
-    raise # Re-levanta o erro para que o Gunicorn o veja
+    raise
