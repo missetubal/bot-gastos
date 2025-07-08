@@ -103,7 +103,7 @@ async def add_category_command(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text(f"Erro ao adicionar categoria '{nome_exibicao}'. Ela já existe ou ocorreu um problema.")
 
 
-async def definir_limite_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def set_limit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Define ou altera o limite mensal para uma categoria."""
     supabase_client = context.bot_data['supabase_client']
     if len(context.args) < 2:
@@ -144,7 +144,7 @@ async def definir_limite_command(update: Update, context: ContextTypes.DEFAULT_T
     else:
         await update.message.reply_text(f"Erro ao definir limite para a categoria '{categoria_nome_normalizada}'.")
 
-async def adicionar_alias_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def add_alias_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Adiciona aliases (palavras-chave) para uma categoria existente."""
     supabase_client = context.bot_data['supabase_client']
     if len(context.args) < 2:

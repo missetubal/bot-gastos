@@ -79,7 +79,7 @@ def generate_balance_chart(supabase_client: Client,
                            data_fim: Union[str, None] = None) -> Union[io.BytesIO, None]:
     """Gera um gráfico de balanço mensal de ganhos vs. gastos, com filtros de data."""
     try:
-        gastos_data_raw = supabase_client.table('expenses').select('valor,data').execute().data
+        gastos_data_raw = supabase_client.table('expenses').select('value,date').execute().data
         ganhos_data_raw = supabase_client.table('ganhos').select('valor,data').execute().data
     except Exception as e:
         print(f"Erro ao obter dados para gráfico de balanço: {e}")
@@ -262,7 +262,7 @@ def generate_payment_method_spending_chart(supabase_client: Client,
                                           data_fim: Union[str, None] = None) -> Union[io.BytesIO, None]:
     """Gera um gráfico do total de gastos por forma de pagamento, com filtros."""
     try:
-        gastos_data_raw = supabase_client.table('expenses').select('valor,data,payment_methods(name),category_id').execute().data
+        gastos_data_raw = supabase_client.table('expenses').select('value,date,payment_methods(name),category_id').execute().data
     except Exception as e:
         print(f"Erro ao obter gastos para gráfico de formas de pagamento: {e}")
         return None
@@ -346,7 +346,7 @@ def generate_monthly_category_payment_chart(supabase_client: Client,
     com as formas de pagamento como sub-divisões.
     """
     try:
-        gastos_data_raw = supabase_client.table('expenses').select('valor,data,formas_pagamento(nome),categories(name)').execute().data
+        gastos_data_raw = supabase_client.table('expenses').select('value,date,payment_methods(name),categories(name)').execute().data
     except Exception as e:
         print(f"Erro ao obter gastos para gráfico mensal combinado: {e}")
         return None

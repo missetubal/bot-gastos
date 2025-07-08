@@ -18,7 +18,7 @@ async def category_spending_command(update: Update, context: ContextTypes.DEFAUL
         await update.message.reply_photo(photo=chart_buffer, caption="Aqui estão seus gastos por categoria:")
     else:
         await update.message.reply_text("Ainda não tenho dados suficientes para gerar um gráfico de categorias. Registre alguns gastos primeiro!")
-async def listar_gastos_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def list_expenses_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Lista todos os gastos de um mês específico ou de uma categoria."""
     supabase_client = context.bot_data['supabase_client']
     
@@ -91,7 +91,7 @@ async def listar_gastos_command(update: Update, context: ContextTypes.DEFAULT_TY
     else:
         await update.message.reply_text(f"Nenhum gasto encontrado{period_title} com o critério '{query}'.")
 
-async def total_por_pagamento_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def payment_method_spending_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Gera e envia o gráfico de gastos por forma de pagamento."""
     supabase_client = context.bot_data['supabase_client']
     await update.message.reply_text("Gerando o gráfico de gastos por forma de pagamento, por favor aguarde...")
@@ -102,7 +102,7 @@ async def total_por_pagamento_command(update: Update, context: ContextTypes.DEFA
     else:
         await update.message.reply_text("Ainda não tenho dados suficientes para gerar um gráfico de formas de pagamento. Registre alguns gastos primeiro!")
 
-async def gastos_mensal_combinado_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def monthly_category_payment_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Gera e envia o gráfico de gastos mensais por categoria e forma de pagamento."""
     supabase_client = context.bot_data['supabase_client']
     await update.message.reply_text("Gerando o gráfico de gastos mensais combinado, por favor aguarde...")
