@@ -1,10 +1,11 @@
 # src/bot/bot_setup.py
 from telegram.ext import Application, MessageHandler, filters, CommandHandler, ConversationHandler
+from telegram import Update # Import Update for type hinting
 from src.bot.commands import (
     start_command, help_command, balanco_command, gastos_por_categoria_command,
     categorias_command, adicionar_categoria_command, definir_limite_command,
     adicionar_alias_command, total_categoria_command, total_por_pagamento_command,
-    gastos_mensal_combinado_command, listar_gastos_command # <-- NOVOS COMANDOS IMPORTADOS
+    gastos_mensal_combinado_command, listar_gastos_command
 )
 from src.bot.handlers import (
     handle_initial_message, handle_category_clarification, handle_new_category_name, 
@@ -14,8 +15,8 @@ from src.bot.handlers import (
 )
 from src.config import TELEGRAM_BOT_TOKEN
 
-def setup_and_run_bot(config: dict):
-    """Configura e inicia a aplicação do bot do Telegram."""
+def setup_and_run_bot(config: dict) -> Application: # Specify return type as Application
+    """Configura a aplicação do bot do Telegram."""
     application = Application.builder().token(config["TELEGRAM_BOT_TOKEN"]).build()
 
     application.bot_data['supabase_client'] = config["SUPABASE_CLIENT"]
@@ -31,8 +32,8 @@ def setup_and_run_bot(config: dict):
     application.add_handler(CommandHandler("adicionar_alias", adicionar_alias_command))
     application.add_handler(CommandHandler("total_categoria", total_categoria_command))
     application.add_handler(CommandHandler("total_por_pagamento", total_por_pagamento_command))
-    application.add_handler(CommandHandler("gastos_mensal_combinado", gastos_mensal_combinado_command)) # NOVO COMANDO REGISTRADO
-    application.add_handler(CommandHandler("listar_gastos", listar_gastos_command)) # NOVO COMANDO REGISTRADO
+    application.add_handler(CommandHandler("gastos_mensal_combinado", gastos_mensal_combinado_command))
+    application.add_handler(CommandHandler("listar_gastos", listar_gastos_command))
 
     # Configura o ConversationHandler
     conv_handler = ConversationHandler(
@@ -58,8 +59,6 @@ def setup_and_run_bot(config: dict):
     )
     application.add_handler(conv_handler)
 
-    print(f"Bot Telegram iniciado! Procure por @<nome_do_seu_bot> no Telegram e comece a conversar.")
-    print("Certifique-se de que o Ollama está rodando e o modelo 'llama3' (ou o que você configurou) está baixado.")
-    print("Verifique também se suas credenciais do Supabase estão corretas e as tabelas 'gastos', 'ganhos', 'categorias' e 'formas_pagamento' foram criadas.")
-
-    application.run_polling()
+    print(f"Bot Telegram configurado para Webhooks. Pronto para ser rodado pelo WSGI.")
+    # REMOVED: application.run_polling() <--- THIS LINE IS REMOVED FOR WEBHOOK DEPLOYMENT
+    return application # The configured application object is returned for Gunicorn to use.
