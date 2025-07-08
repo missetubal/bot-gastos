@@ -58,7 +58,7 @@ jobs:
         run: |
           # Certifique-se que seus testes unitários estão na pasta 'tests/'
           # E que o comando 'python -m unittest discover tests' funciona localmente.
-          python -m unittest discover tests/
+          python -m unittest discover src/tests/
         env:
           # Variáveis de ambiente de teste para os testes, se eles precisarem
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN_TEST }}
