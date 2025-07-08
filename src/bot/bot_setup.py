@@ -1,9 +1,9 @@
 # src/bot/bot_setup.py
 from telegram.ext import Application, MessageHandler, filters, CommandHandler, ConversationHandler
 from src.bot.commands import (
-    start_command, help_command, balanco_command, gastos_por_categoria_command,
-    category_command, adicionar_categoria_command, definir_limite_command,
-    adicionar_alias_command, total_categoria_command, total_por_pagamento_command,
+    start_command, help_command, balanco_command, category_spending_command,
+    category_command, add_category_command, definir_limite_command,
+    adicionar_alias_command, total_category_command, total_por_pagamento_command,
     gastos_mensal_combinado_command, listar_gastos_command
 )
 from src.bot.handlers import (
@@ -23,12 +23,12 @@ def setup_and_run_bot(config: dict):
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("balanco", balanco_command))
-    application.add_handler(CommandHandler("gastos_por_categoria", gastos_por_categoria_command))
+    application.add_handler(CommandHandler("gastos_por_categoria", category_spending_command))
     application.add_handler(CommandHandler("categorias", category_command))
-    application.add_handler(CommandHandler("adicionar_categoria", adicionar_categoria_command))
+    application.add_handler(CommandHandler("adicionar_categoria", add_category_command))
     application.add_handler(CommandHandler("definir_limite", definir_limite_command))
     application.add_handler(CommandHandler("adicionar_alias", adicionar_alias_command))
-    application.add_handler(CommandHandler("total_categoria", total_categoria_command))
+    application.add_handler(CommandHandler("total_categoria", total_category_command))
     application.add_handler(CommandHandler("total_por_pagamento", total_por_pagamento_command))
     application.add_handler(CommandHandler("gastos_mensal_combinado", gastos_mensal_combinado_command)) # NOVO COMANDO REGISTRADO
     application.add_handler(CommandHandler("listar_gastos", listar_gastos_command)) # NOVO COMANDO REGISTRADO
@@ -59,6 +59,6 @@ def setup_and_run_bot(config: dict):
 
     print(f"Bot Telegram iniciado! Procure por @<nome_do_seu_bot> no Telegram e comece a conversar.")
     print("Certifique-se de que o Ollama está rodando e o modelo 'llama3' (ou o que você configurou) está baixado.")
-    print("Verifique também se suas credenciais do Supabase estão corretas e as tabelas 'gastos', 'ganhos', 'categorias' e 'formas_pagamento' foram criadas.")
+    print("Verifique também se suas credenciais do Supabase estão corretas e as tabelas 'expenses', 'ganhos', 'categories' e 'payment_methods' foram criadas.")
 
     application.run_polling()

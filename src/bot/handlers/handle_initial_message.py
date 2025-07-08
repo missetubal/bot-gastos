@@ -35,15 +35,15 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
     # --- Lógica para Adicionar Categoria ---
     if intencao == 'adicionar_categoria':
         categoria_nome_input = parsed_info.get('categoria_nome')
-        limite_mensal = parsed_info.get('limite_mensal')
+        monthly_limit = parsed_info.get('monthly_limit')
 
         if not categoria_nome_input:
             await update.message.reply_text("🤔 Não consegui identificar o nome da categoria que você quer adicionar.")
             return ConversationHandler.END
 
-        if db.add_categoria(supabase_client, categoria_nome_input, limite_mensal=limite_mensal):
+        if db.add_category(supabase_client, categoria_nome_input, monthly_limit=monthly_limit):
             nome_exibicao = to_camel_case(categoria_nome_input)
-            limite_msg = f" com limite de R${limite_mensal:.2f}" if limite_mensal is not None and limite_mensal > 0 else ""
+            limite_msg = f" com limite de R${monthly_limit:.2f}" if monthly_limit is not None and monthly_limit > 0 else ""
             await update.message.reply_text(f"🎉 Categoria '{nome_exibicao}' adicionada{limite_msg} com sucesso!")
         else:
             nome_exibicao = to_camel_case(categoria_nome_input)
@@ -56,30 +56,30 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
         
         # Para gastos, prepare mais dados para o user_data
         if intencao == 'gasto':
-            valor = float(parsed_info['valor'])
-            data = parsed_info.get('data', str(datetime.date.today()))
+            valor = float(parsed_info['value'])
+            data = parsed_info.get('date', str(datetime.date.today()))
             categoria_texto_llama = parsed_info.get('categoria', 'Outros') or 'Outros' 
             forma_pagamento_text = parsed_info.get('forma_pagamento')
             descricao_gasto = parsed_info.get('descricao_gasto', user_message)
 
             context.user_data['pending_transaction'].update({
-                'valor': valor,
-                'data': data,
+                'value': valor,
+                'date': data,
                 'original_category_text': categoria_texto_llama,
                 'forma_pagamento_text': forma_pagamento_text,
                 'descricao_gasto': descricao_gasto,
                 'transaction_type': 'gasto'
             })
             
-            categoria_id = db.get_categoria_id_by_text(supabase_client, categoria_texto_llama)
-            if categoria_id:
-                context.user_data['pending_transaction']['categoria_id'] = categoria_id
-                context.user_data['pending_transaction']['categoria_nome_db'] = next((cat['nome'] for cat in db.get_categorias(supabase_client) if cat['id'] == categoria_id), categoria_texto_llama)
+            category_id = db.get_category_id_by_text(supabase_client, categoria_texto_llama)
+            if category_id:
+                context.user_data['pending_transaction']['category_id'] = category_id
+                context.user_data['pending_transaction']['categoria_nome_db'] = next((cat['name'] for cat in db.get_categories(supabase_client) if cat['id'] == category_id), categoria_texto_llama)
             else:
                 similar_categories = db.find_similar_categories(supabase_client, categoria_texto_llama)
                 context.user_data['pending_transaction']['suggestions'] = similar_categories
                 
-                keyboard_options = [[cat['nome']] for cat in similar_categories]
+                keyboard_options = [[cat['name']] for cat in similar_categories]
                 keyboard_options.append(["Criar nova categoria ➕", "Não se aplica / Outra 🤷‍♀️"])
                 reply_markup = ReplyKeyboardMarkup(keyboard_options, one_time_keyboard=True, resize_keyboard=True)
                 await update.message.reply_text(
@@ -96,14 +96,14 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
                 forma_pagamento_normalizada = to_camel_case(forma_pagamento_text)
                 formas_pagamento_db_info = db.get_formas_pagamento(supabase_client)
                 for fp in formas_pagamento_db_info:
-                    if fp['nome'] == forma_pagamento_normalizada:
+                    if fp['name'] == forma_pagamento_normalizada:
                         forma_pagamento_id = fp['id']
-                        forma_pagamento_nome_real = fp['nome']
+                        forma_pagamento_nome_real = fp['name']
                         break
             
             if not forma_pagamento_id:
                 formas_pagamento_disponiveis = db.get_formas_pagamento(supabase_client)
-                keyboard_options = [[fp['nome']] for fp in formas_pagamento_disponiveis]
+                keyboard_options = [[fp['name']] for fp in formas_pagamento_disponiveis]
                 keyboard_options.append(["Outro / Não sei ❓"])
                 reply_markup = ReplyKeyboardMarkup(keyboard_options, one_time_keyboard=True, resize_keyboard=True)
                 await update.message.reply_text(
@@ -116,13 +116,13 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
             context.user_data['pending_transaction']['forma_pagamento_nome_real'] = forma_pagamento_nome_real
             
         elif intencao == 'ganho':
-            valor = float(parsed_info['valor'])
-            data = parsed_info.get('data', str(datetime.date.today()))
-            descricao = parsed_info.get('descricao', 'Diversos')
+            valor = float(parsed_info['value'])
+            data = parsed_info.get('date', str(datetime.date.today()))
+            descricao = parsed_info.get('description', 'Diversos')
             context.user_data['pending_transaction'].update({
-                'valor': valor,
-                'data': data,
-                'descricao': descricao,
+                'value': valor,
+                'date': data,
+                'description': descricao,
                 'transaction_type': 'ganho'
             })
             
@@ -134,7 +134,7 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
         data_fim = parsed_info.get('data_fim')
         
         forma_pagamento_id = None
-        categoria_id = None
+        category_id = None
         
         if intencao == 'mostrar_grafico_gastos_categoria':
             forma_pagamento_text = parsed_info.get('forma_pagamento')
@@ -149,10 +149,10 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
         elif intencao == 'mostrar_grafico_gastos_por_pagamento':
             categoria_texto_llama = parsed_info.get('categoria')
             if categoria_texto_llama:
-                categoria_id = db.get_categoria_id_by_text(supabase_client, categoria_texto_llama)
-                if not categoria_id:
+                category_id = db.get_category_id_by_text(supabase_client, categoria_texto_llama)
+                if not category_id:
                     await update.message.reply_text(f"⚠️ Categoria '{categoria_texto_llama}' não reconhecida. Gerando gráfico sem este filtro. 📊")
-            chart_buffer = charts.generate_payment_method_spending_chart(supabase_client, categoria_id=categoria_id, data_inicio=data_inicio, data_fim=data_fim)
+            chart_buffer = charts.generate_payment_method_spending_chart(supabase_client, category_id=category_id, data_inicio=data_inicio, data_fim=data_fim)
             title = "Gastos por Forma de Pagamento"
         
         elif intencao == 'mostrar_balanco':
@@ -182,15 +182,15 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
             period_title = ""
 
             # Lógica para filtrar por categoria, se fornecida
-            categoria_id = None
+            category_id = None
             if categoria_texto_llama:
-                categoria_id = db.get_categoria_id_by_text(supabase_client, categoria_texto_llama)
-                if not categoria_id:
+                category_id = db.get_category_id_by_text(supabase_client, categoria_texto_llama)
+                if not category_id:
                     await update.message.reply_text(f"⚠️ Categoria '{categoria_texto_llama}' não reconhecida. Listando todos os gastos no período.")
             
             # Lógica para filtrar por data, se fornecida
             gastos_data_raw = db.get_gastos(supabase_client) # Pega todos os gastos
-            gastos_filtrados = charts.filter_gastos_data(gastos_data_raw, categoria_id=categoria_id, data_inicio=data_inicio, data_fim=data_fim)
+            gastos_filtrados = charts.filter_gastos_data(gastos_data_raw, category_id=category_id, data_inicio=data_inicio, data_fim=data_fim)
             
             # Constrói o título do período/categoria para a mensagem
             if data_inicio and data_fim:
@@ -201,29 +201,29 @@ async def handle_initial_message(update: Update, context: ContextTypes.DEFAULT_T
                 else:
                     period_title = f" de {start_date_obj.strftime('%d/%m/%Y')} a {end_date_obj.strftime('%d/%m/%Y')}"
             
-            if categoria_id and not period_title: # Se filtrou só por categoria
-                 categoria_nome_real = next((cat['nome'] for cat in db.get_categorias(supabase_client) if cat['id'] == categoria_id), categoria_texto_llama)
+            if category_id and not period_title: # Se filtrou só por categoria
+                 categoria_nome_real = next((cat['name'] for cat in db.get_categories(supabase_client) if cat['id'] == category_id), categoria_texto_llama)
                  period_title = f" da categoria {categoria_nome_real}"
-            elif not categoria_id and not period_title: # Se não teve filtro
+            elif not category_id and not period_title: # Se não teve filtro
                  period_title = " (Todos os Gastos)"
 
 
             if gastos_filtrados:
                 message = f"**Detalhes dos Gastos{period_title}:**\n\n"
                 total_sum = 0.0
-                gastos_filtrados_sorted = sorted(gastos_filtrados, key=lambda x: x['data'], reverse=True)
+                gastos_filtrados_sorted = sorted(gastos_filtrados, key=lambda x: x['date'], reverse=True)
                 
                 for gasto in gastos_filtrados_sorted:
-                    valor_fmt = f"R${gasto['valor']:.2f}"
-                    data_fmt = gasto['data'].strftime('%Y-%m-%d') # Formata para string
+                    valor_fmt = f"R${gasto['value']:.2f}"
+                    data_fmt = gasto['date'].strftime('%Y-%m-%d') # Formata para string
                     categoria_nome = gasto.get('categoria_nome', 'Desconhecida')
                     forma_pagamento_nome = gasto.get('forma_pagamento_nome', 'Não Informado')
-                    descricao = gasto.get('descricao', 'Sem descrição')
+                    descricao = gasto.get('description', 'Sem descrição')
                     
                     message += (
                         f"• {valor_fmt} {descricao} ({categoria_nome} - {forma_pagamento_nome}) em {data_fmt}\n"
                     )
-                    total_sum += gasto['valor']
+                    total_sum += gasto['value']
                 
                 message += f"\n**Total: R${total_sum:.2f}**"
                 await update.message.reply_text(message, parse_mode='Markdown')

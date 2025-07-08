@@ -16,9 +16,9 @@ async def handle_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("Ops! 😬 Não encontrei uma transação pendente. Por favor, tente registrar seu gasto novamente. 🔄", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
     
-    valor = pending_transaction['valor']
-    data = pending_transaction['data']
-    categoria_id = pending_transaction['categoria_id']
+    valor = pending_transaction['value']
+    data = pending_transaction['date']
+    category_id = pending_transaction['category_id']
     categoria_nome_db = pending_transaction['categoria_nome_db']
     original_category_text = pending_transaction['original_category_text']
     descricao_gasto = pending_transaction['descricao_gasto']
@@ -29,7 +29,7 @@ async def handle_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
     if not forma_pagamento_id:
         if user_response_payment.lower() not in ["outro / não sei ❓", "outro", "não sei", "nao sei"]:
             try:
-                response_add_fp = supabase_client.table('formas_pagamento').insert({'nome': final_payment_method_name}).execute()
+                response_add_fp = supabase_client.table('payment_methods').insert({'name': final_payment_method_name}).execute()
                 if response_add_fp.data:
                     # Supabase `insert` retorna uma lista de dicionários, pegue o ID do primeiro elemento
                     forma_pagamento_id = response_add_fp.data[0]['id'] 

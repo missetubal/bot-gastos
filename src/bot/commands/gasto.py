@@ -8,7 +8,7 @@ import datetime
 from src.utils.text_utils import to_camel_case
 
 
-async def gastos_por_categoria_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def category_spending_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Gera e envia o gráfico de gastos por categoria."""
     supabase_client = context.bot_data['supabase_client']
     await update.message.reply_text("Gerando o gráfico de gastos por categoria, por favor aguarde...")
@@ -53,12 +53,12 @@ async def listar_gastos_command(update: Update, context: ContextTypes.DEFAULT_TY
     # Tenta como categoria
     if not gastos_filtrados: # Se não filtrou por mês, tenta por categoria
         categoria_nome_normalizada = to_camel_case(query)
-        categoria_id = db.get_categoria_id_by_text(supabase_client, categoria_nome_normalizada)
+        category_id = db.get_category_id_by_text(supabase_client, categoria_nome_normalizada)
         
-        if categoria_id:
+        if category_id:
             gastos_data_raw = db.get_gastos(supabase_client)
             # A data já é um objeto Timestamp do Pandas após filter_gastos_data
-            gastos_filtrados = charts.filter_gastos_data(gastos_data_raw, categoria_id=categoria_id)
+            gastos_filtrados = charts.filter_gastos_data(gastos_data_raw, category_id=category_id)
             period_title = f" da categoria {categoria_nome_normalizada}"
         else:
             await update.message.reply_text(
@@ -71,20 +71,20 @@ async def listar_gastos_command(update: Update, context: ContextTypes.DEFAULT_TY
         message = f"**Detalhes dos Gastos{period_title}:**\n\n"
         total_sum = 0.0
         # AQUI ESTÁ A MUDANÇA: Use a data diretamente para ordenação, ela já é um objeto datetime/Timestamp
-        gastos_filtrados_sorted = sorted(gastos_filtrados, key=lambda x: x['data'], reverse=True) # <-- CORREÇÃO AQUI
+        gastos_filtrados_sorted = sorted(gastos_filtrados, key=lambda x: x['date'], reverse=True) # <-- CORREÇÃO AQUI
         
         for gasto in gastos_filtrados_sorted:
-            valor_fmt = f"R${gasto['valor']:.2f}"
+            valor_fmt = f"R${gasto['value']:.2f}"
             # Formata a data Timestamp para string de exibição
-            data_fmt = gasto['data'].strftime('%Y-%m-%d') # <-- ADICIONADO strftime para exibição
+            data_fmt = gasto['date'].strftime('%Y-%m-%d') # <-- ADICIONADO strftime para exibição
             categoria_nome = gasto.get('categoria_nome', 'Desconhecida')
             forma_pagamento_nome = gasto.get('forma_pagamento_nome', 'Não Informado')
-            descricao = gasto.get('descricao', 'Sem descrição')
+            descricao = gasto.get('description', 'Sem descrição')
             
             message += (
                 f"• {valor_fmt} {descricao} ({categoria_nome} - {forma_pagamento_nome}) em {data_fmt}\n"
             )
-            total_sum += gasto['valor']
+            total_sum += gasto['value']
         
         message += f"\n**Total: R${total_sum:.2f}**"
         await update.message.reply_text(message, parse_mode='Markdown')

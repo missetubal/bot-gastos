@@ -15,8 +15,8 @@ async def handle_category_clarification(update: Update, context: ContextTypes.DE
         await update.message.reply_text("Ops! 😬 Não encontrei uma transação pendente. Por favor, tente registrar seu gasto novamente. 🔄", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
 
-    valor = pending_transaction['valor']
-    data = pending_transaction['data']
+    valor = pending_transaction['value']
+    data = pending_transaction['date']
     original_category_text = pending_transaction['original_category_text']
     suggestions = pending_transaction['suggestions']
     forma_pagamento_text = pending_transaction['forma_pagamento_text']
@@ -28,21 +28,21 @@ async def handle_category_clarification(update: Update, context: ContextTypes.DE
     user_response_camel_case = to_camel_case(user_response)
 
     for suggestion in suggestions:
-        if user_response_camel_case == suggestion['nome']:
+        if user_response_camel_case == suggestion['name']:
             chosen_category_id = suggestion['id']
-            chosen_category_name = suggestion['nome']
+            chosen_category_name = suggestion['name']
             break
     
     if not chosen_category_id:
-        all_categorias = db.get_categorias(supabase_client)
+        all_categorias = db.get_categories(supabase_client)
         for cat in all_categorias:
-            if user_response_camel_case == cat['nome']:
+            if user_response_camel_case == cat['name']:
                 chosen_category_id = cat['id']
-                chosen_category_name = cat['nome']
+                chosen_category_name = cat['name']
                 break
 
     if chosen_category_id:
-        context.user_data['pending_transaction']['categoria_id'] = chosen_category_id
+        context.user_data['pending_transaction']['category_id'] = chosen_category_id
         context.user_data['pending_transaction']['categoria_nome_db'] = chosen_category_name
         
         # Categoria resolvida. Agora verifica a forma de pagamento.
@@ -52,14 +52,14 @@ async def handle_category_clarification(update: Update, context: ContextTypes.DE
             forma_pagamento_normalizada = to_camel_case(forma_pagamento_text)
             formas_pagamento_db_info = db.get_formas_pagamento(supabase_client)
             for fp in formas_pagamento_db_info:
-                if fp['nome'] == forma_pagamento_normalizada:
+                if fp['name'] == forma_pagamento_normalizada:
                     forma_pagamento_id = fp['id']
-                    forma_pagamento_nome_real = fp['nome']
+                    forma_pagamento_nome_real = fp['name']
                     break
         
         if not forma_pagamento_id:
             formas_pagamento_disponiveis = db.get_formas_pagamento(supabase_client)
-            keyboard_options = [[fp['nome']] for fp in formas_pagamento_disponiveis]
+            keyboard_options = [[fp['name']] for fp in formas_pagamento_disponiveis]
             keyboard_options.append(["Outro / Não sei ❓"])
             reply_markup = ReplyKeyboardMarkup(keyboard_options, one_time_keyboard=True, resize_keyboard=True)
             await update.message.reply_text(

@@ -40,26 +40,26 @@ async def handle_correction(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return ASKING_CORRECTION
 
     # Aplica a correção na transação pendente
-    if campo.lower() == 'valor':
+    if campo.lower() == 'value':
         try:
-            pending_transaction['valor'] = float(str(novo_valor).replace(',', '.'))
+            pending_transaction['value'] = float(str(novo_valor).replace(',', '.'))
             await update.message.reply_text("Valor atualizado! 💰")
         except ValueError:
             await update.message.reply_text("Valor inválido para o campo 'Valor'. Tente novamente. 🔢")
             return ASKING_CORRECTION
-    elif campo.lower() == 'data':
+    elif campo.lower() == 'date':
         try:
             # Valida o formato e atualiza o pending_transaction
             datetime.datetime.strptime(str(novo_valor), '%Y-%m-%d')
-            pending_transaction['data'] = str(novo_valor)
+            pending_transaction['date'] = str(novo_valor)
             await update.message.reply_text("Data atualizada! 📅")
         except ValueError:
             await update.message.reply_text("Formato de data inválido. Use AAAA-MM-DD. Tente novamente. 🗓️")
             return ASKING_CORRECTION
     elif campo.lower() == 'categoria':
-        nova_categoria_id = db.get_categoria_id_by_text(supabase_client, str(novo_valor))
-        if nova_categoria_id:
-            pending_transaction['categoria_id'] = nova_categoria_id
+        nova_category_id = db.get_category_id_by_text(supabase_client, str(novo_valor))
+        if nova_category_id:
+            pending_transaction['category_id'] = nova_category_id
             pending_transaction['categoria_nome_db'] = to_camel_case(str(novo_valor))
             await update.message.reply_text("Categoria atualizada! 🏷️")
         else:
@@ -78,7 +78,7 @@ async def handle_correction(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         else:
             await update.message.reply_text(f"Forma de pagamento '{str(novo_valor)}' não encontrada. Verifique `/categorias` ou tente outra. 🤷‍♀️", reply_markup=ReplyKeyboardRemove())
             return ASKING_CORRECTION
-    elif campo.lower() == 'descricao' or campo.lower() == 'descricao_gasto':
+    elif campo.lower() == 'description' or campo.lower() == 'descricao_gasto':
         pending_transaction['descricao_gasto'] = str(novo_valor)
         await update.message.reply_text("Descrição atualizada! 📝")
     elif campo.lower() == 'tipo':
@@ -86,14 +86,14 @@ async def handle_correction(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             pending_transaction['transaction_type'] = novo_valor.lower()
             # Ajusta campos específicos se mudar de tipo
             if novo_valor.lower() == 'gasto':
-                pending_transaction.pop('descricao', None) # Remove 'descricao' de ganho
-                if 'categoria_id' not in pending_transaction: pending_transaction['categoria_id'] = None
+                pending_transaction.pop('description', None) # Remove 'description' de ganho
+                if 'category_id' not in pending_transaction: pending_transaction['category_id'] = None
                 pending_transaction['descricao_gasto'] = pending_transaction.get('descricao_gasto') or "" # Garante que tem a chave para gasto
             else: # ganho
-                pending_transaction.pop('categoria_id', None)
+                pending_transaction.pop('category_id', None)
                 pending_transaction.pop('forma_pagamento_id', None)
                 pending_transaction.pop('descricao_gasto', None)
-                if 'descricao' not in pending_transaction: pending_transaction['descricao'] = None # Garante que tem a chave para ganho
+                if 'description' not in pending_transaction: pending_transaction['description'] = None # Garante que tem a chave para ganho
             await update.message.reply_text(f"Tipo de transação alterado para '{novo_valor.lower()}'! 🔄")
         else:
             await update.message.reply_text("Tipo de transação inválido. Use 'gasto' ou 'ganho'. Tente novamente. 🧐")
@@ -108,11 +108,11 @@ async def handle_correction(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         if user_response_sub == 'sim ✅' or user_response_sub == 'sim':
             new_category_name_from_correction = context.user_data.get('pending_transaction_temp_category_name')
             if new_category_name_from_correction:
-                if db.add_categoria(supabase_client, new_category_name_from_correction, limite_mensal=None):
+                if db.add_category(supabase_client, new_category_name_from_correction, monthly_limit=None):
                     new_category_camel_case = to_camel_case(new_category_name_from_correction)
-                    new_cat_id = db.get_categoria_id_by_text(supabase_client, new_category_camel_case)
+                    new_cat_id = db.get_category_id_by_text(supabase_client, new_category_camel_case)
                     if new_cat_id:
-                        pending_transaction['categoria_id'] = new_cat_id
+                        pending_transaction['category_id'] = new_cat_id
                         pending_transaction['categoria_nome_db'] = new_category_camel_case
                         await update.message.reply_text(f"🎉 Categoria '{new_category_camel_case}' criada e aplicada! ✨", reply_markup=ReplyKeyboardRemove())
                     else:

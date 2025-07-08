@@ -16,18 +16,18 @@ async def handle_new_category_name(update: Update, context: ContextTypes.DEFAULT
         await update.message.reply_text("Ops! 😬 Não encontrei uma transação pendente. Por favor, tente registrar seu gasto novamente. 🔄", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
 
-    valor = pending_transaction['valor']
-    data = pending_transaction['data']
+    valor = pending_transaction['value']
+    data = pending_transaction['date']
     original_category_text = pending_transaction['original_category_text']
     forma_pagamento_text = pending_transaction['forma_pagamento_text']
     descricao_gasto = pending_transaction['descricao_gasto']
 
-    if db.add_categoria(supabase_client, new_category_name_input, limite_mensal=None):
+    if db.add_category(supabase_client, new_category_name_input, monthly_limit=None):
         new_category_name_camel_case = to_camel_case(new_category_name_input)
-        categoria_id = db.get_categoria_id_by_text(supabase_client, new_category_name_camel_case)
+        category_id = db.get_category_id_by_text(supabase_client, new_category_name_camel_case)
         
-        if categoria_id:
-            context.user_data['pending_transaction']['categoria_id'] = categoria_id
+        if category_id:
+            context.user_data['pending_transaction']['category_id'] = category_id
             context.user_data['pending_transaction']['categoria_nome_db'] = new_category_name_camel_case
             
             forma_pagamento_id = None
@@ -36,14 +36,14 @@ async def handle_new_category_name(update: Update, context: ContextTypes.DEFAULT
                 forma_pagamento_normalizada = to_camel_case(forma_pagamento_text)
                 formas_pagamento_db_info = db.get_formas_pagamento(supabase_client)
                 for fp in formas_pagamento_db_info:
-                    if fp['nome'] == forma_pagamento_normalizada:
+                    if fp['name'] == forma_pagamento_normalizada:
                         forma_pagamento_id = fp['id']
-                        forma_pagamento_nome_real = fp['nome']
+                        forma_pagamento_nome_real = fp['name']
                         break
 
             if not forma_pagamento_id:
                 formas_pagamento_disponiveis = db.get_formas_pagamento(supabase_client)
-                keyboard_options = [[fp['nome']] for fp in formas_pagamento_disponiveis]
+                keyboard_options = [[fp['name']] for fp in formas_pagamento_disponiveis]
                 keyboard_options.append(["Outro / Não sei ❓"])
                 reply_markup = ReplyKeyboardMarkup(keyboard_options, one_time_keyboard=True, resize_keyboard=True)
                 await update.message.reply_text(
