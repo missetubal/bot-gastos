@@ -1,6 +1,6 @@
 # src/bot/bot_setup.py
 from telegram.ext import Application, MessageHandler, filters, CommandHandler, ConversationHandler
-from telegram import Update # Import Update for type hinting
+from telegram import Update # Import Update para a tipagem
 from src.bot.commands import (
     start_command, help_command, balanco_command, gastos_por_categoria_command,
     categorias_command, adicionar_categoria_command, definir_limite_command,
@@ -15,13 +15,19 @@ from src.bot.handlers import (
 )
 from src.config import TELEGRAM_BOT_TOKEN
 
-def setup_and_run_bot(config: dict) -> Application: # Specify return type as Application
-    """Configura a aplicação do bot do Telegram."""
+def setup_and_run_bot(config: dict) -> Application: # Especifica o tipo de retorno
+    """
+    Configura a aplicação do bot do Telegram (Handlers, Comandos, Conversas).
+    Retorna o objeto Application configurado, pronto para ser usado por um servidor WSGI.
+    """
+    # Constrói a aplicação principal do python-telegram-bot
     application = Application.builder().token(config["TELEGRAM_BOT_TOKEN"]).build()
 
+    # Armazena o cliente Supabase no bot_data para que handlers e comandos possam acessá-lo
     application.bot_data['supabase_client'] = config["SUPABASE_CLIENT"]
 
-    # Adiciona os handlers para comandos
+    # --- Adiciona os Handlers para Comandos ---
+    # Comandos que são acionados com '/' (ex: /start, /help)
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("balanco", balanco_command))
@@ -35,30 +41,45 @@ def setup_and_run_bot(config: dict) -> Application: # Specify return type as App
     application.add_handler(CommandHandler("gastos_mensal_combinado", gastos_mensal_combinado_command))
     application.add_handler(CommandHandler("listar_gastos", listar_gastos_command))
 
-    # Configura o ConversationHandler
+    # --- Configura o ConversationHandler ---
+    # Este é o manipulador principal para o fluxo de conversas em múltiplas etapas.
+    # Ele é acionado por mensagens de texto que NÃO são comandos.
     conv_handler = ConversationHandler(
+        # entry_points: Onde a conversa pode começar
         entry_points=[MessageHandler(filters.TEXT & ~filters.COMMAND, handle_initial_message)],
+        
+        # states: Mapeia estados a handlers específicos
         states={
+            # Estado para clarificação de categoria (se o Llama não identificou)
             ASKING_CATEGORY_CLARIFICATION: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_category_clarification)
             ],
+            # Estado para criação de nova categoria (se o usuário escolher)
             ASKING_NEW_CATEGORY_NAME: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_category_name)
             ],
+            # Estado para perguntar a forma de pagamento (se o Llama não identificou)
             ASKING_PAYMENT_METHOD: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_payment_method)
             ],
+            # Estado para confirmar a transação (Sim/Não)
             ASKING_CONFIRMATION: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_confirmation)
             ],
+            # Estado para processar correções (se o usuário disser 'Não' à confirmação)
             ASKING_CORRECTION: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_correction)
             ],
         },
+        # fallbacks: O que fazer se a conversa não se encaixar em nenhum estado
+        # Aqui, o comando /cancel encerra qualquer conversa em andamento.
         fallbacks=[CommandHandler("cancel", lambda update, context: ConversationHandler.END)],
     )
+    # Adiciona o ConversationHandler à aplicação
     application.add_handler(conv_handler)
 
+    # Mensagem de log para indicar que o bot foi configurado
     print(f"Bot Telegram configurado para Webhooks. Pronto para ser rodado pelo WSGI.")
-    # REMOVED: application.run_polling() <--- THIS LINE IS REMOVED FOR WEBHOOK DEPLOYMENT
-    return application # The configured application object is returned for Gunicorn to use.
+    # NÃO chamamos application.run_polling() aqui!
+    # A aplicação será rodada por um servidor WSGI (Gunicorn) que o Render iniciará.
+    return application
