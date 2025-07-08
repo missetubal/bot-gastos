@@ -15,5 +15,6 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 OLLAMA_API_URL = os.getenv("OLLAMA_API_URL") # <-- RE-ADICIONADA
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")     # <-- RE-ADICIONADA
 
-# REMOVIDO: GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-# REMOVIDO: GEMINI_MODEL = "gemini-pro"
+# Configurações do Gemini API
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") # <-- Carrega a chave Gemini
+GEMINI_MODEL = "gemini-1.5-flash" # <-- Define o modelo Gemini a ser usado

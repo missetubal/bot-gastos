@@ -1,41 +1,54 @@
 # src/core/ai.py
-import requests # Usado para interagir com a API REST do Ollama
+import requests # Ainda pode ser útil para outras requisições HTTP
 import json
 import datetime
 from typing import Dict, Any, Union, List
 from supabase import Client # Para tipagem
 
-# REMOVIDO: import google.generativeai as genai
-# REMOVIDO: from google.generativeai.types import HarmCategory, HarmBlockThreshold
+# Importações para Gemini
+import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
-from src.config import OLLAMA_API_URL, OLLAMA_MODEL # <-- RE-IMPORTA AS CONFIGURAÇÕES DO OLLAMA
+# Importa as configurações do Gemini do seu config.py
+from src.config import GOOGLE_API_KEY, GEMINI_MODEL
 
-# REMOVIDO: genai.configure(api_key=GOOGLE_API_KEY)
-# REMOVIDO: safety_settings = { ... }
+# Configura a API do Gemini com sua chave
+genai.configure(api_key=GOOGLE_API_KEY)
 
-# Reverte a função ask_llama para usar o Ollama local
-def ask_llama(prompt: str, model: str = OLLAMA_MODEL) -> str:
-    """Envia um prompt para o modelo Llama via Ollama API local."""
-    headers = {"Content-Type": "application/json"}
-    data = {
-        "model": model,
-        "prompt": prompt,
-        "stream": False
-    }
+# Ajustes de segurança para o Gemini (recomendado para bots)
+safety_settings = {
+    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+}
+
+
+# Função que agora se comunica com o Gemini
+def ask_llama(prompt: str, model: str = GEMINI_MODEL) -> str:
+    """Envia um prompt para o modelo Gemini."""
     try:
-        response = requests.post(OLLAMA_API_URL, headers=headers, data=json.dumps(data))
-        response.raise_for_status() # Levanta um erro para status de erro HTTP (ex: 404, 500)
-        return response.json()['response']
-    except requests.exceptions.RequestException as e:
-        print(f"Erro ao conectar com Ollama: {e}")
-        return "Desculpe, não consegui processar sua requisição agora. O Ollama está offline ou o modelo não está disponível."
+        model_instance = genai.GenerativeModel(model_name=model, safety_settings=safety_settings)
+        response = model_instance.generate_content(prompt)
+        
+        # O Gemini pode retornar um erro se a resposta for bloqueada ou vazia
+        if not response.parts: # Verifica se há partes na resposta
+             print(f"DEBUG Gemini: Resposta vazia ou bloqueada. Raw: {response}")
+             return "Modelo de IA retornou uma resposta vazia ou bloqueada."
+        
+        return response.text.strip()
+    except Exception as e:
+        print(f"Erro ao conectar com Gemini: {e}")
+        # Se for um erro 404 de modelo, pode sugerir verificar o nome do modelo
+        if "404" in str(e):
+            return "Desculpe, o modelo de IA especificado não foi encontrado ou está indisponível. Verifique o nome do modelo."
+        return "Desculpe, não consegui processar sua requisição agora. O modelo de IA está offline ou indisponível."
 
 
 def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[str, Any], None]:
     """
     Extrai informações da mensagem do usuário (gasto, ganho, add_categoria, gráficos, ou edição de gasto).
     """
-    # Calcula as datas reais e pega as categorias existentes
     today_str = datetime.date.today().strftime("%Y-%m-%d")
     yesterday_str = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
     two_days_ago_str = (datetime.date.today() - datetime.timedelta(days=2)).strftime("%Y-%m-%d")
@@ -48,13 +61,13 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
     last_month_start_str = last_month_start_date.strftime("%Y-%m-%d")
     last_month_end_str = last_month_end_date.strftime("%Y-%m-%d")
 
-    # Pega as categorias existentes para passar ao Llama
+    # Pega as categorias existentes para passar ao Gemini
     try:
         from src.core.db import get_categorias # Importação local para evitar ciclo
         existing_categories_data = get_categorias(supabase_client)
         existing_category_names = [cat['nome'] for cat in existing_categories_data]
     except Exception as e:
-        print(f"Erro ao obter categorias para o prompt do Llama: {e}")
+        print(f"Erro ao obter categorias para o prompt do Gemini: {e}")
         existing_category_names = ["Alimentacao", "Transporte", "Moradia", "Lazer", "Saude", "Educacao", "Outros"] # Fallback
 
     categories_list_str = ", ".join(existing_category_names)
@@ -147,8 +160,8 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
     ---
     JSON de Saída:
     """
-    response_text = ask_llama(prompt) # Chama ask_llama, que agora usa Ollama
-    print(f"DEBUG Ollama response raw: {response_text}")
+    response_text = ask_llama(prompt) # ask_llama chama Gemini agora
+    print(f"DEBUG Gemini response raw: {response_text}")
 
     try:
         json_start = response_text.find('{')
@@ -167,12 +180,12 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
                         data[key] = None
             return data
     except (json.JSONDecodeError, ValueError) as e:
-        print(f"Erro ao decodificar JSON ou converter valor do Ollama: {e}. Resposta bruta: {response_text}")
+        print(f"Erro ao decodificar JSON ou converter valor do Gemini: {e}. Resposta bruta: {response_text}")
     return None
 
 def suggest_category_from_llama(text_from_llama: str, existing_categories: List[str], supabase_client: Client) -> Union[str, None]:
     """
-    Pede ao Llama para mapear um termo de categoria para uma das categorias existentes.
+    Pede ao Gemini para mapear um termo de categoria para uma das categorias existentes.
     existing_categories deve ser uma lista de nomes de categorias em CamelCase.
     """
     if not existing_categories:
@@ -203,8 +216,8 @@ def suggest_category_from_llama(text_from_llama: str, existing_categories: List[
     Lista de Categorias: {categories_str}
     Resposta:
     """
-    response = ask_llama(prompt) # ask_llama agora chama Ollama
-    print(f"DEBUG Ollama suggestion response raw: {response}")
+    response = ask_llama(prompt) # ask_llama chama Gemini
+    print(f"DEBUG Gemini suggestion response raw: {response}")
     cleaned_response = response.strip()
     
     if cleaned_response != "NENHUMA" and cleaned_response in existing_categories:
@@ -214,7 +227,7 @@ def suggest_category_from_llama(text_from_llama: str, existing_categories: List[
 
 def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
     """
-    Pede ao Llama para extrair o campo e o novo valor de uma mensagem de correção.
+    Pede ao Gemini para extrair o campo e o novo valor de uma mensagem de correção.
     """
     prompt = f"""
     Sua única tarefa é extrair o campo a ser corrigido e o novo valor da mensagem do usuário.
@@ -246,8 +259,8 @@ def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
     ---
     JSON de Saída:
     """
-    response_text = ask_llama(prompt) # ask_llama agora chama Ollama
-    print(f"DEBUG Ollama correction raw: {response_text}")
+    response_text = ask_llama(prompt) # ask_llama chama Gemini
+    print(f"DEBUG Gemini correction raw: {response_text}")
 
     try:
         json_start = response_text.find('{')
@@ -263,5 +276,5 @@ def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
                     pass
             return data
     except (json.JSONDecodeError, ValueError) as e:
-        print(f"Erro ao decodificar JSON de correção do Ollama: {e}. Resposta bruta: {response_text}")
+        print(f"Erro ao decodificar JSON de correção do Gemini: {e}. Resposta bruta: {response_text}")
     return None
