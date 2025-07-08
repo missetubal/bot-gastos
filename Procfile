@@ -1,2 +1,2 @@
 # Procfile
-web: python -m src.main
+web: gunicorn src.main:wsgi_app --timeout 120

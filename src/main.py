@@ -21,7 +21,9 @@ def main():
     }
 
     print("Iniciando bot de finanças...")
-    setup_and_run_bot(config)
+    application = setup_and_run_bot(config)
+    wsgi_app = application # <--- ESTA LINHA É ESSENCIAL E DEVE ESTAR AQUI!
+    print("Aplicação WSGI pronta para o Render.")
 
 if __name__ == "__main__":
     main()
