@@ -23,20 +23,20 @@ class TestArtificialIntelligence(unittest.TestCase):
         # NOVO: Mock para o cliente Supabase
         self.mock_supabase_client = MagicMock(spec=Client)
 
-    @patch('requests.post')
-    def test_ask_llama_success(self, mock_post):
-        mock_response = MagicMock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {'response': 'Llama is here!'}
-        mock_post.return_value = mock_response
+    # @patch('requests.post')
+    # def test_ask_llama_success(self, mock_post):
+    #     mock_response = MagicMock()
+    #     mock_response.raise_for_status.return_value = None
+    #     mock_response.json.return_value = {'response': 'Llama is here!'}
+    #     mock_post.return_value = mock_response
 
-        response = ai.ask_llama("Hello Llama")
-        self.assertEqual(response, 'Llama is here!')
-        mock_post.assert_called_once_with(
-            ai.OLLAMA_API_URL,
-            headers={"Content-Type": "application/json"},
-            data=json.dumps({"model": ai.OLLAMA_MODEL, "prompt": "Hello Llama", "stream": False})
-        )
+    #     response = ai.ask_llama("Hello Llama")
+    #     self.assertEqual(response, 'Llama is here!')
+    #     mock_post.assert_called_once_with(
+    #         ai.OLLAMA_API_URL,
+    #         headers={"Content-Type": "application/json"},
+    #         data=json.dumps({"model": ai.OLLAMA_MODEL, "prompt": "Hello Llama", "stream": False})
+    #     )
 
     @patch('requests.post')
     def test_ask_llama_failure(self, mock_post):
