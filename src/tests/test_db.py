@@ -180,13 +180,13 @@ class TestDatabase(unittest.TestCase):
         result = db.add_category(self.mock_supabase_client, "existente", 100.0)
         self.assertFalse(result)
 
-    # --- Testes para get_categorias ---
-    def test_get_categorias_empty(self):
+    # --- Testes para get_categories ---
+    def test_get_categories_empty(self):
         self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = []
         categorias = db.get_categories(self.mock_supabase_client)
         self.assertEqual(categorias, [])
 
-    def test_get_categorias_with_data(self):
+    def test_get_categories_with_data(self):
         mock_data = [
             {
                 "id": "cat1",
@@ -213,9 +213,9 @@ class TestDatabase(unittest.TestCase):
         side_effect=lambda x: "".join(word.capitalize() for word in x.split()),
     )
     def test_get_categoria_id_by_text_exact_name(
-        self, mock_to_camel_case, mock_get_categorias
+        self, mock_to_camel_case, mock_get_categories
     ):
-        mock_get_categorias.return_value = [
+        mock_get_categories.return_value = [
             {"id": "cat1", "name": "Alimentacao", "aliases": []}
         ]
         cat_id = db.get_category_id_by_text(self.mock_supabase_client, "Alimentacao")
@@ -227,9 +227,9 @@ class TestDatabase(unittest.TestCase):
         side_effect=lambda x: "".join(word.capitalize() for word in x.split()),
     )
     def test_get_categoria_id_by_text_alias(
-        self, mock_to_camel_case, mock_get_categorias
+        self, mock_to_camel_case, mock_get_categories
     ):
-        mock_get_categorias.return_value = [
+        mock_get_categories.return_value = [
             {"id": "cat1", "name": "Alimentacao", "aliases": ["mercado", "comida"]}
         ]
         cat_id = db.get_category_id_by_text(self.mock_supabase_client, "mercado")
@@ -241,9 +241,9 @@ class TestDatabase(unittest.TestCase):
         side_effect=lambda x: "".join(word.capitalize() for word in x.split()),
     )
     def test_get_categoria_id_by_text_not_found(
-        self, mock_to_camel_case, mock_get_categorias
+        self, mock_to_camel_case, mock_get_categories
     ):
-        mock_get_categorias.return_value = [
+        mock_get_categories.return_value = [
             {"id": "cat1", "name": "Alimentacao", "aliases": []}
         ]
         cat_id = db.get_category_id_by_text(self.mock_supabase_client, "Inexistente")

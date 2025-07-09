@@ -46,9 +46,9 @@ class TestArtificialIntelligence(unittest.TestCase):
 
     # --- Testes para extract_transaction_info ---
     @patch('src.core.ai.ask_llama') # Mock ask_llama aqui
-    @patch('src.core.db.get_categorias') # Mock get_categorias para não chamar o DB real
-    def test_extract_transaction_info_gasto_completo(self, mock_get_categorias, mock_ask_llama):
-        mock_get_categorias.return_value = [{'name': 'Alimentacao'}, {'name': 'Transporte'}] # Exemplo de retorno
+    @patch('src.core.db.get_categories') # Mock get_categories para não chamar o DB real
+    def test_extract_transaction_info_gasto_completo(self, mock_get_categories, mock_ask_llama):
+        mock_get_categories.return_value = [{'name': 'Alimentacao'}, {'name': 'Transporte'}] # Exemplo de retorno
         mock_ask_llama.return_value = f'{{"intencao": "gasto", "valor": 50.0, "categoria": "Mercado", "data": "{self.today_str}", "forma_pagamento": "pix", "descricao_gasto": "Compras no mercado"}}'
         
         # Passa self.mock_supabase_client como o segundo argumento
@@ -60,12 +60,12 @@ class TestArtificialIntelligence(unittest.TestCase):
         self.assertEqual(info['data'], self.today_str)
         self.assertEqual(info['forma_pagamento'], 'pix')
         self.assertEqual(info['descricao_gasto'], 'Compras no mercado')
-        mock_get_categorias.assert_called_once_with(self.mock_supabase_client) # Verifica se get_categorias foi chamado com o mock
+        mock_get_categories.assert_called_once_with(self.mock_supabase_client) # Verifica se get_categories foi chamado com o mock
 
     @patch('src.core.ai.ask_llama')
-    @patch('src.core.db.get_categorias')
-    def test_extract_transaction_info_ganho(self, mock_get_categorias, mock_ask_llama):
-        mock_get_categorias.return_value = [] # Ganhos não usam categorias
+    @patch('src.core.db.get_categories')
+    def test_extract_transaction_info_ganho(self, mock_get_categories, mock_ask_llama):
+        mock_get_categories.return_value = [] # Ganhos não usam categorias
         mock_ask_llama.return_value = f'{{"intencao": "ganho", "valor": 1000.0, "descricao": "Salário", "data": "{self.last_month_end_str}"}}'
         info = ai.extract_transaction_info("recebi meu salário de 1000 mês passado", self.mock_supabase_client)
         self.assertIsNotNone(info)
@@ -75,9 +75,9 @@ class TestArtificialIntelligence(unittest.TestCase):
         self.assertEqual(info['data'], self.last_month_end_str)
 
     @patch('src.core.ai.ask_llama')
-    @patch('src.core.db.get_categorias')
-    def test_extract_transaction_info_adicionar_categoria(self, mock_get_categorias, mock_ask_llama):
-        mock_get_categorias.return_value = []
+    @patch('src.core.db.get_categories')
+    def test_extract_transaction_info_adicionar_categoria(self, mock_get_categories, mock_ask_llama):
+        mock_get_categories.return_value = []
         mock_ask_llama.return_value = '{"intencao": "adicionar_categoria", "categoria_nome": "Lazer", "limite_mensal": 300.0}'
         # Passa self.mock_supabase_client
         info = ai.extract_transaction_info("adicione categoria lazer com limite de 300", self.mock_supabase_client)
@@ -85,12 +85,12 @@ class TestArtificialIntelligence(unittest.TestCase):
         self.assertEqual(info['intencao'], 'adicionar_categoria')
         self.assertEqual(info['categoria_nome'], 'Lazer')
         self.assertEqual(info['limite_mensal'], 300.0)
-        mock_get_categorias.assert_called_once_with(self.mock_supabase_client)
+        mock_get_categories.assert_called_once_with(self.mock_supabase_client)
 
     @patch('src.core.ai.ask_llama')
-    @patch('src.core.db.get_categorias')
-    def test_extract_transaction_info_grafico_categoria_com_filtro(self, mock_get_categorias, mock_ask_llama):
-        mock_get_categorias.return_value = [{'name': 'Alimentacao'}, {'name': 'Transporte'}]
+    @patch('src.core.db.get_categories')
+    def test_extract_transaction_info_grafico_categoria_com_filtro(self, mock_get_categories, mock_ask_llama):
+        mock_get_categories.return_value = [{'name': 'Alimentacao'}, {'name': 'Transporte'}]
         mock_ask_llama.return_value = f'{{"intencao": "mostrar_grafico_gastos_categoria", "forma_pagamento": "crédito", "data_inicio": "{self.current_month_start_str}", "data_fim": "{self.current_month_end_str}"}}'
         info = ai.extract_transaction_info("gastos por categoria no crédito este mês", self.mock_supabase_client)
         self.assertIsNotNone(info)
@@ -98,28 +98,28 @@ class TestArtificialIntelligence(unittest.TestCase):
         self.assertEqual(info['forma_pagamento'], 'crédito')
         self.assertEqual(info['data_inicio'], self.current_month_start_str)
         self.assertEqual(info['data_fim'], self.current_month_end_str)
-        mock_get_categorias.assert_called_once_with(self.mock_supabase_client)
+        mock_get_categories.assert_called_once_with(self.mock_supabase_client)
 
     @patch('src.core.ai.ask_llama')
-    @patch('src.core.db.get_categorias')
-    def test_extract_transaction_info_invalid_json(self, mock_get_categorias, mock_ask_llama):
-        mock_get_categorias.return_value = []
+    @patch('src.core.db.get_categories')
+    def test_extract_transaction_info_invalid_json(self, mock_get_categories, mock_ask_llama):
+        mock_get_categories.return_value = []
         mock_ask_llama.return_value = '{"intencao": "gasto", "valor": 50, "categoria": "Mercado" // comentario}' # Invalid JSON
         info = ai.extract_transaction_info("gastei 50 mercado", self.mock_supabase_client)
         self.assertIsNone(info)
 
     @patch('src.core.ai.ask_llama')
-    @patch('src.core.db.get_categorias')
-    def test_extract_transaction_info_no_json(self, mock_get_categorias, mock_ask_llama):
-        mock_get_categorias.return_value = []
+    @patch('src.core.db.get_categories')
+    def test_extract_transaction_info_no_json(self, mock_get_categories, mock_ask_llama):
+        mock_get_categories.return_value = []
         mock_ask_llama.return_value = 'Não entendi sua mensagem.'
         info = ai.extract_transaction_info("bla bla bla", self.mock_supabase_client)
         self.assertIsNone(info)
 
     @patch('src.core.ai.ask_llama')
-    @patch('src.core.db.get_categorias')
-    def test_extract_transaction_info_value_as_string_comma(self, mock_get_categorias, mock_ask_llama):
-        mock_get_categorias.return_value = []
+    @patch('src.core.db.get_categories')
+    def test_extract_transaction_info_value_as_string_comma(self, mock_get_categories, mock_ask_llama):
+        mock_get_categories.return_value = []
         mock_ask_llama.return_value = '{"intencao": "gasto", "valor": "18,50", "categoria": "Transporte", "data": "2025-07-07", "forma_pagamento": "débito", "descricao_gasto": "Corrida"}'
         info = ai.extract_transaction_info("gastei 18,50 no debito", self.mock_supabase_client)
         self.assertIsNotNone(info)
