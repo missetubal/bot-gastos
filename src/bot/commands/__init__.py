@@ -1,5 +1,3 @@
-# src/bot/commands/__init__.py
-
 from .utils import start_command, help_command
 from .balanco import balanco_command
 from .category import (

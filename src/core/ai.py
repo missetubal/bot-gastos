@@ -1,5 +1,4 @@
 # src/core/ai.py
-import requests  # Ainda pode ser útil para outras requisições HTTP
 import json
 import datetime
 from typing import Dict, Any, Union, List
