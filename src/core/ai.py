@@ -63,9 +63,9 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
 
     # Pega as categorias existentes para passar ao Gemini
     try:
-        from src.core.db import get_categorias # Importação local para evitar ciclo
-        existing_categories_data = get_categorias(supabase_client)
-        existing_category_names = [cat['nome'] for cat in existing_categories_data]
+        from src.core.db import get_categories # Importação local para evitar ciclo
+        existing_categories_data = get_categories(supabase_client)
+        existing_category_names = [cat['name'] for cat in existing_categories_data]
     except Exception as e:
         print(f"Erro ao obter categorias para o prompt do Gemini: {e}")
         existing_category_names = ["Alimentacao", "Transporte", "Moradia", "Lazer", "Saude", "Educacao", "Outros"] # Fallback
@@ -90,7 +90,7 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
     Formato JSON:
     - Para "gasto": {{"intencao": "gasto", "valor": float, "categoria": "...", "data": "AAAA-MM-DD", "forma_pagamento": "..." (ou null), "descricao_gasto": "..."}}
     - Para "ganho": {{"intencao": "ganho", "valor": float, "descricao": "...", "data": "AAAA-MM-DD"}}
-    - Para "adicionar_categoria": {{"intencao": "adicionar_categoria", "categoria_nome": "...", "limite_mensal": float ou null}}
+    - Para "adicionar_categoria": {{"intencao": "adicionar_categoria", "categoria_nome": "...", "monthly_limit": float ou null}}
     - Para mostrar gráficos:
         - {{"intencao": "mostrar_balanco", "data_inicio": "AAAA-MM-DD" (ou null), "data_fim": "AAAA-MM-DD" (ou null)}}
         - {{"intencao": "mostrar_grafico_gastos_categoria", "forma_pagamento": "..." (ou null), "data_inicio": "AAAA-MM-DD" (ou null), "data_fim": "AAAA-MM-DD" (ou null)}}
@@ -104,7 +104,7 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
     Detalhes de extração:
     - A **data** e **data_inicio/data_fim** devem estar sempre no formato **AAAA-MM-DD**. Se não for mencionada, use a data de **hoje**.
     - Para períodos como "este mês", "mês passado", "julho", "agosto", etc., calcule a data_inicio e data_fim corretas. Se for "julho", "agosto", etc., use o mês do ano corrente.
-    - O valor e limite_mensal devem ser números float. Se limite_mensal não for especificado, use null.
+    - O valor e monthly_limit devem ser números float. Se monthly_limit não for especificado, use null.
     - A forma_pagamento deve ser uma string como "crédito", "débito", "pix", "dinheiro" ou null.
     - **descricao_gasto** deve ser uma string curta e clara que descreve o item ou a atividade do gasto.
     - Para gastos, a **categoria** deve ser **OBRIGATORIAMENTE** uma das seguintes, ou a mais próxima delas: {categories_list_str}. Se nenhuma se encaixar bem, use "Outros".
@@ -172,7 +172,7 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
             json_str = '\n'.join([line for line in json_str.split('\n') if not line.strip().startswith('//')])
 
             data = json.loads(json_str)
-            for key in ['valor', 'limite_mensal']:
+            for key in ['value', 'monthly_limit']:
                 if key in data and isinstance(data[key], str):
                     try:
                         data[key] = float(data[key].replace(',', '.'))
@@ -269,7 +269,7 @@ def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
             json_str = response_text[json_start : json_end + 1]
             json_str = '\n'.join([line for line in json_str.split('\n') if not line.strip().startswith('//')])
             data = json.loads(json_str)
-            if data.get('campo', '').lower() == 'valor' and isinstance(data.get('novo_valor'), str):
+            if data.get('campo', '').lower() == 'value' and isinstance(data.get('novo_valor'), str):
                 try:
                     data['novo_valor'] = float(data['novo_valor'].replace(',', '.'))
                 except ValueError:
