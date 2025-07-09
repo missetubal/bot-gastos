@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Envia uma mensagem quando o comando /start é emitido."""
     await update.message.reply_text(
@@ -19,6 +20,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "- `/adicionar_alias [categoria] [alias1,alias2,...]` para adicionar sinônimos.\n"
         "- `/help` para mais informações."
     )
+
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Envia uma mensagem quando o comando /help é emitido."""

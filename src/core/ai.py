@@ -1,9 +1,8 @@
 # src/core/ai.py
-import requests # Ainda pode ser útil para outras requisições HTTP
 import json
 import datetime
 from typing import Dict, Any, Union, List
-from supabase import Client # Para tipagem
+from supabase import Client  # Para tipagem
 
 # Importações para Gemini
 import google.generativeai as genai
@@ -28,14 +27,16 @@ safety_settings = {
 def ask_llama(prompt: str, model: str = GEMINI_MODEL) -> str:
     """Envia um prompt para o modelo Gemini."""
     try:
-        model_instance = genai.GenerativeModel(model_name=model, safety_settings=safety_settings)
+        model_instance = genai.GenerativeModel(
+            model_name=model, safety_settings=safety_settings
+        )
         response = model_instance.generate_content(prompt)
-        
+
         # O Gemini pode retornar um erro se a resposta for bloqueada ou vazia
-        if not response.parts: # Verifica se há partes na resposta
-             print(f"DEBUG Gemini: Resposta vazia ou bloqueada. Raw: {response}")
-             return "Modelo de IA retornou uma resposta vazia ou bloqueada."
-        
+        if not response.parts:  # Verifica se há partes na resposta
+            print(f"DEBUG Gemini: Resposta vazia ou bloqueada. Raw: {response}")
+            return "Modelo de IA retornou uma resposta vazia ou bloqueada."
+
         return response.text.strip()
     except Exception as e:
         print(f"Erro ao conectar com Gemini: {e}")
@@ -45,33 +46,53 @@ def ask_llama(prompt: str, model: str = GEMINI_MODEL) -> str:
         return "Desculpe, não consegui processar sua requisição agora. O modelo de IA está offline ou indisponível."
 
 
-def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[str, Any], None]:
+def extract_transaction_info(
+    text: str, supabase_client: Client
+) -> Union[Dict[str, Any], None]:
     """
     Extrai informações da mensagem do usuário (gasto, ganho, add_categoria, gráficos, ou edição de gasto).
     """
     today_str = datetime.date.today().strftime("%Y-%m-%d")
-    yesterday_str = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-    two_days_ago_str = (datetime.date.today() - datetime.timedelta(days=2)).strftime("%Y-%m-%d")
-    last_week_day_str = (datetime.date.today() - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+    yesterday_str = (datetime.date.today() - datetime.timedelta(days=1)).strftime(
+        "%Y-%m-%d"
+    )
+    two_days_ago_str = (datetime.date.today() - datetime.timedelta(days=2)).strftime(
+        "%Y-%m-%d"
+    )
+    last_week_day_str = (datetime.date.today() - datetime.timedelta(days=7)).strftime(
+        "%Y-%m-%d"
+    )
     current_month_start_str = datetime.date.today().replace(day=1).strftime("%Y-%m-%d")
-    current_month_end_date = (datetime.date.today().replace(day=1) + datetime.timedelta(days=32)).replace(day=1) - datetime.timedelta(days=1)
+    current_month_end_date = (
+        datetime.date.today().replace(day=1) + datetime.timedelta(days=32)
+    ).replace(day=1) - datetime.timedelta(days=1)
     current_month_end_str = current_month_end_date.strftime("%Y-%m-%d")
-    last_month_end_date = datetime.date.today().replace(day=1) - datetime.timedelta(days=1)
+    last_month_end_date = datetime.date.today().replace(day=1) - datetime.timedelta(
+        days=1
+    )
     last_month_start_date = last_month_end_date.replace(day=1)
     last_month_start_str = last_month_start_date.strftime("%Y-%m-%d")
     last_month_end_str = last_month_end_date.strftime("%Y-%m-%d")
 
     # Pega as categorias existentes para passar ao Gemini
     try:
-        from src.core.db import get_categories # Importação local para evitar ciclo
+        from src.core.db import get_categories  # Importação local para evitar ciclo
+
         existing_categories_data = get_categories(supabase_client)
-        existing_category_names = [cat['name'] for cat in existing_categories_data]
+        existing_category_names = [cat["name"] for cat in existing_categories_data]
     except Exception as e:
         print(f"Erro ao obter categorias para o prompt do Gemini: {e}")
-        existing_category_names = ["Alimentacao", "Transporte", "Moradia", "Lazer", "Saude", "Educacao", "Outros"] # Fallback
+        existing_category_names = [
+            "Alimentacao",
+            "Transporte",
+            "Moradia",
+            "Lazer",
+            "Saude",
+            "Educacao",
+            "Outros",
+        ]  # Fallback
 
     categories_list_str = ", ".join(existing_category_names)
-
 
     prompt = f"""
     Sua única tarefa é extrair informações da mensagem do usuário e retornar APENAS um objeto JSON.
@@ -119,7 +140,7 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
     Resposta: {{"intencao": "edicao_gasto", "valor": 15.0, "categoria": "Transporte", "data": "{yesterday_str}", "descricao_gasto": "Uber"}}
 
     Usuário: corrigir o gasto de 10/07 na Avatim
-    Resposta: {{"intencao": "edicao_gasto", "data": "{datetime.date(2025, 7, 10).strftime('%Y-%m-%d')}", "descricao_gasto": "Avatim", "categoria": null, "valor": null}}
+    Resposta: {{"intencao": "edicao_gasto", "data": "{datetime.date(2025, 7, 10).strftime("%Y-%m-%d")}", "descricao_gasto": "Avatim", "categoria": null, "valor": null}}
     Usuário: 35 de passagem de ônibus no débito ontem
     Resposta: {{"intencao": "gasto", "valor": 35.0, "categoria": "Transporte", "data": "{yesterday_str}", "forma_pagamento": "débito", "descricao_gasto": "Passagem de ônibus"}}
 
@@ -160,30 +181,41 @@ def extract_transaction_info(text: str, supabase_client: Client) -> Union[Dict[s
     ---
     JSON de Saída:
     """
-    response_text = ask_llama(prompt) # ask_llama chama Gemini agora
+    response_text = ask_llama(prompt)  # ask_llama chama Gemini agora
     print(f"DEBUG Gemini response raw: {response_text}")
 
     try:
-        json_start = response_text.find('{')
-        json_end = response_text.rfind('}')
-        
+        json_start = response_text.find("{")
+        json_end = response_text.rfind("}")
+
         if json_start != -1 and json_end != -1:
             json_str = response_text[json_start : json_end + 1]
-            json_str = '\n'.join([line for line in json_str.split('\n') if not line.strip().startswith('//')])
+            json_str = "\n".join(
+                [
+                    line
+                    for line in json_str.split("\n")
+                    if not line.strip().startswith("//")
+                ]
+            )
 
             data = json.loads(json_str)
-            for key in ['value', 'monthly_limit']:
+            for key in ["value", "monthly_limit"]:
                 if key in data and isinstance(data[key], str):
                     try:
-                        data[key] = float(data[key].replace(',', '.'))
+                        data[key] = float(data[key].replace(",", "."))
                     except ValueError:
                         data[key] = None
             return data
     except (json.JSONDecodeError, ValueError) as e:
-        print(f"Erro ao decodificar JSON ou converter valor do Gemini: {e}. Resposta bruta: {response_text}")
+        print(
+            f"Erro ao decodificar JSON ou converter valor do Gemini: {e}. Resposta bruta: {response_text}"
+        )
     return None
 
-def suggest_category_from_llama(text_from_llama: str, existing_categories: List[str], supabase_client: Client) -> Union[str, None]:
+
+def suggest_category_from_llama(
+    text_from_llama: str, existing_categories: List[str], supabase_client: Client
+) -> Union[str, None]:
     """
     Pede ao Gemini para mapear um termo de categoria para uma das categorias existentes.
     existing_categories deve ser uma lista de nomes de categorias em CamelCase.
@@ -216,14 +248,15 @@ def suggest_category_from_llama(text_from_llama: str, existing_categories: List[
     Lista de Categorias: {categories_str}
     Resposta:
     """
-    response = ask_llama(prompt) # ask_llama chama Gemini
+    response = ask_llama(prompt)  # ask_llama chama Gemini
     print(f"DEBUG Gemini suggestion response raw: {response}")
     cleaned_response = response.strip()
-    
+
     if cleaned_response != "NENHUMA" and cleaned_response in existing_categories:
         return cleaned_response
-    
+
     return None
+
 
 def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
     """
@@ -259,22 +292,32 @@ def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
     ---
     JSON de Saída:
     """
-    response_text = ask_llama(prompt) # ask_llama chama Gemini
+    response_text = ask_llama(prompt)  # ask_llama chama Gemini
     print(f"DEBUG Gemini correction raw: {response_text}")
 
     try:
-        json_start = response_text.find('{')
-        json_end = response_text.rfind('}')
+        json_start = response_text.find("{")
+        json_end = response_text.rfind("}")
         if json_start != -1 and json_end != -1:
             json_str = response_text[json_start : json_end + 1]
-            json_str = '\n'.join([line for line in json_str.split('\n') if not line.strip().startswith('//')])
+            json_str = "\n".join(
+                [
+                    line
+                    for line in json_str.split("\n")
+                    if not line.strip().startswith("//")
+                ]
+            )
             data = json.loads(json_str)
-            if data.get('campo', '').lower() == 'value' and isinstance(data.get('novo_valor'), str):
+            if data.get("campo", "").lower() == "valor" and isinstance(
+                data.get("novo_valor"), str
+            ):
                 try:
-                    data['novo_valor'] = float(data['novo_valor'].replace(',', '.'))
+                    data["novo_valor"] = float(data["novo_valor"].replace(",", "."))
                 except ValueError:
                     pass
             return data
     except (json.JSONDecodeError, ValueError) as e:
-        print(f"Erro ao decodificar JSON de correção do Gemini: {e}. Resposta bruta: {response_text}")
+        print(
+            f"Erro ao decodificar JSON de correção do Gemini: {e}. Resposta bruta: {response_text}"
+        )
     return None

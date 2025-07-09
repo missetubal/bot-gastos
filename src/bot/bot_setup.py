@@ -1,47 +1,83 @@
 # src/bot/bot_setup.py
-from telegram.ext import Application, MessageHandler, filters, CommandHandler, ConversationHandler
+from telegram.ext import (
+    Application,
+    MessageHandler,
+    filters,
+    CommandHandler,
+    ConversationHandler,
+)
 from src.bot.commands import (
-    start_command, help_command, balanco_command, category_spending_command,
-    category_command, add_category_command, set_limit_command,
-    add_alias_command, total_category_command, payment_method_spending_command,
-    monthly_category_payment_command, list_expenses_command
+    start_command,
+    help_command,
+    balanco_command,
+    category_spending_command,
+    category_command,
+    add_category_command,
+    set_limit_command,
+    add_alias_command,
+    total_category_command,
+    payment_method_spending_command,
+    monthly_category_payment_command,
+    list_expenses_command,
 )
 from src.bot.handlers import (
-    handle_initial_message, handle_category_clarification, handle_new_category_name, 
-    handle_payment_method, handle_confirmation, handle_correction, 
-    ASKING_CATEGORY_CLARIFICATION, ASKING_NEW_CATEGORY_NAME, 
-    ASKING_PAYMENT_METHOD, ASKING_CONFIRMATION, ASKING_CORRECTION
+    handle_initial_message,
+    handle_category_clarification,
+    handle_new_category_name,
+    handle_payment_method,
+    handle_confirmation,
+    handle_correction,
+    ASKING_CATEGORY_CLARIFICATION,
+    ASKING_NEW_CATEGORY_NAME,
+    ASKING_PAYMENT_METHOD,
+    ASKING_CONFIRMATION,
+    ASKING_CORRECTION,
 )
+
 
 def setup_and_run_bot(config: dict):
     """Configura e inicia a aplicação do bot do Telegram."""
     application = Application.builder().token(config["TELEGRAM_BOT_TOKEN"]).build()
 
-    application.bot_data['supabase_client'] = config["SUPABASE_CLIENT"]
+    application.bot_data["supabase_client"] = config["SUPABASE_CLIENT"]
 
     # Adiciona os handlers para comandos
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("balanco", balanco_command))
-    application.add_handler(CommandHandler("gastos_por_categoria", category_spending_command))
+    application.add_handler(
+        CommandHandler("gastos_por_categoria", category_spending_command)
+    )
     application.add_handler(CommandHandler("categorias", category_command))
     application.add_handler(CommandHandler("adicionar_categoria", add_category_command))
     application.add_handler(CommandHandler("definir_limite", set_limit_command))
     application.add_handler(CommandHandler("adicionar_alias", add_alias_command))
     application.add_handler(CommandHandler("total_categoria", total_category_command))
-    application.add_handler(CommandHandler("total_por_pagamento", payment_method_spending_command))
-    application.add_handler(CommandHandler("gastos_mensal_combinado", monthly_category_payment_command)) # NOVO COMANDO REGISTRADO
-    application.add_handler(CommandHandler("listar_gastos", list_expenses_command)) # NOVO COMANDO REGISTRADO
+    application.add_handler(
+        CommandHandler("total_por_pagamento", payment_method_spending_command)
+    )
+    application.add_handler(
+        CommandHandler("gastos_mensal_combinado", monthly_category_payment_command)
+    )  # NOVO COMANDO REGISTRADO
+    application.add_handler(
+        CommandHandler("listar_gastos", list_expenses_command)
+    )  # NOVO COMANDO REGISTRADO
 
     # Configura o ConversationHandler
     conv_handler = ConversationHandler(
-        entry_points=[MessageHandler(filters.TEXT & ~filters.COMMAND, handle_initial_message)],
+        entry_points=[
+            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_initial_message)
+        ],
         states={
             ASKING_CATEGORY_CLARIFICATION: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_category_clarification)
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, handle_category_clarification
+                )
             ],
             ASKING_NEW_CATEGORY_NAME: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_category_name)
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, handle_new_category_name
+                )
             ],
             ASKING_PAYMENT_METHOD: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_payment_method)
@@ -53,12 +89,20 @@ def setup_and_run_bot(config: dict):
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_correction)
             ],
         },
-        fallbacks=[CommandHandler("cancel", lambda update, context: ConversationHandler.END)],
+        fallbacks=[
+            CommandHandler("cancel", lambda update, context: ConversationHandler.END)
+        ],
     )
     application.add_handler(conv_handler)
 
-    print(f"Bot Telegram iniciado! Procure por @<nome_do_seu_bot> no Telegram e comece a conversar.")
-    print("Certifique-se de que o Ollama está rodando e o modelo 'llama3' (ou o que você configurou) está baixado.")
-    print("Verifique também se suas credenciais do Supabase estão corretas e as tabelas 'expenses', 'ganhos', 'categories' e 'payment_methods' foram criadas.")
+    print(
+        f"Bot Telegram iniciado! Procure por @<nome_do_seu_bot> no Telegram e comece a conversar."
+    )
+    print(
+        "Certifique-se de que o Ollama está rodando e o modelo 'llama3' (ou o que você configurou) está baixado."
+    )
+    print(
+        "Verifique também se suas credenciais do Supabase estão corretas e as tabelas 'expenses', 'ganhos', 'categories' e 'payment_methods' foram criadas."
+    )
 
     application.run_polling()

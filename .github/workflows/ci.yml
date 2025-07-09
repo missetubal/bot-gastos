@@ -1,0 +1,67 @@
+# .github/workflows/ci.yml
+
+name: CI - Verificação de Qualidade do Código
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9' # Use a versão do Python que você usa localmente ou no Render/PA
+
+      - name: Instalar Dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pylint # Instala Pylint para o linting
+          pip install ruff # Instala Ruff para o linting/formatação (opcional, se quiser usar)
+          pip install pytest # Instala Pytest para os testes (se você tiver testes com pytest)
+
+      - name: Configurar Variáveis de Ambiente (para Testes)
+        # Atenção: Estas são variáveis de ambiente para o ambiente do CI.
+        # Use valores de teste ou mocks. NUNCA suas chaves reais aqui.
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN_TEST }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_TEST }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY_TEST }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY_TEST }}
+          # Para testes unitários com mocks, esses valores podem ser fictícios.
+          # Para testes de integração, você precisaria de um ambiente de teste real.
+        run: |
+          echo "Variáveis de ambiente de teste configuradas."
+
+      - name: Rodar Lint com Pylint
+        run: |
+          pylint src/ # Analisa a pasta src/
+        continue-on-error: true # Permite que o workflow continue mesmo com avisos do lint
+
+      - name: Rodar Lint com Ruff (Opcional - se usar Ruff)
+        run: |
+          ruff check src/ # Verifica erros e estilo
+          ruff format src/ --check # Verifica se o código está formatado corretamente
+        continue-on-error: true
+
+      - name: Rodar Testes Unitários
+        run: |
+          # Certifique-se que seus testes unitários estão na pasta 'src/tests/'
+          # E que o comando 'python -m unittest discover tests' funciona localmente.
+          python -m unittest discover src/tests/
+        env:
+          # Variáveis de ambiente de teste para os testes, se eles precisarem
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN_TEST }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_TEST }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY_TEST }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY_TEST }}
