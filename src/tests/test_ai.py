@@ -42,7 +42,7 @@ class TestArtificialIntelligence(unittest.TestCase):
     def test_ask_llama_failure(self, mock_post):
         mock_post.side_effect = requests.exceptions.RequestException("Connection error")
         response = ai.ask_llama("Hello Llama")
-        self.assertEqual(response, 'Desculpe, não consegui processar sua requisição agora. O Llama está offline ou o modelo não está disponível?')
+        self.assertEqual(response, "Desculpe, não consegui processar sua requisição agora. O modelo de IA está offline ou indisponível.")
 
     # --- Testes para extract_transaction_info ---
     @patch('src.core.ai.ask_llama') # Mock ask_llama aqui
@@ -123,7 +123,7 @@ class TestArtificialIntelligence(unittest.TestCase):
         mock_ask_llama.return_value = '{"intencao": "gasto", "valor": "18,50", "categoria": "Transporte", "data": "2025-07-07", "forma_pagamento": "débito", "descricao_gasto": "Corrida"}'
         info = ai.extract_transaction_info("gastei 18,50 no debito", self.mock_supabase_client)
         self.assertIsNotNone(info)
-        self.assertEqual(info['valor'], 18.50)
+        self.assertEqual(info['valor'], 18.5)
 
     # --- Testes para suggest_category_from_llama ---
     @patch('src.core.ai.ask_llama')
@@ -165,7 +165,7 @@ class TestArtificialIntelligence(unittest.TestCase):
         correction = ai.extract_correction_from_llama("Valor 60.50")
         self.assertIsNotNone(correction)
         self.assertEqual(correction['campo'], 'valor')
-        self.assertEqual(correction['novo_valor'], 60.50) # Converte para float
+        self.assertEqual(correction['novo_valor'], 60.5) # Converte para float
 
     @patch('src.core.ai.ask_llama')
     def test_extract_correction_from_llama_data(self, mock_ask_llama):
