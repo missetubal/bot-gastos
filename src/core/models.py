@@ -7,10 +7,10 @@ from datetime import date
 
 
 class Gasto:
-    def __init__(self, id: str, valor: float, categoria_id: str, data: date):
+    def __init__(self, id: str, valor: float, category_id: str, data: date):
         self.id = id
         self.valor = valor
-        self.categoria_id = categoria_id
+        self.category_id = category_id
         self.data = data
 
 
@@ -23,10 +23,10 @@ class Ganho:
 
 
 class Categoria:
-    def __init__(self, id: str, nome: str, limite_mensal: Optional[float] = 0.0):
+    def __init__(self, id: str, nome: str, monthly_limit: Optional[float] = 0.0):
         self.id = id
         self.nome = nome
-        self.limite_mensal = limite_mensal
+        self.monthly_limit = monthly_limit
 
 
 # Estes modelos servem para documentar a estrutura esperada dos dados.
