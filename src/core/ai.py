@@ -308,7 +308,7 @@ def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
                 ]
             )
             data = json.loads(json_str)
-            if data.get("campo", "").lower() == "value" and isinstance(
+            if data.get("campo", "").lower() == "valor" and isinstance(
                 data.get("novo_valor"), str
             ):
                 try:
