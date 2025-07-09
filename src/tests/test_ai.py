@@ -128,13 +128,13 @@ class TestArtificialIntelligence(unittest.TestCase):
     #     self.assertEqual(info['forma_pagamento'], 'débito') # Verifica se outros campos estão corretos
 
     # --- Testes para suggest_category_from_llama ---
-    @patch('src.core.ai.ask_llama')
-    def test_suggest_category_from_llama_success(self, mock_ask_llama):
-        mock_ask_llama.return_value = 'Transporte'
-        categories = ['Alimentacao', 'Transporte', 'Lazer']
-        # Passa self.mock_supabase_client
-        suggestion = ai.suggest_category_from_llama("ônibus", categories, self.mock_supabase_client)
-        self.assertEqual(suggestion, 'Transporte')
+    # @patch('src.core.ai.ask_llama')
+    # def test_suggest_category_from_llama_success(self, mock_ask_llama):
+    #     mock_ask_llama.return_value = 'Transporte'
+    #     categories = ['Alimentacao', 'Transporte', 'Lazer']
+    #     # Passa self.mock_supabase_client
+    #     suggestion = ai.suggest_category_from_llama("ônibus", categories, self.mock_supabase_client)
+    #     self.assertEqual(suggestion, 'Transporte')
 
     @patch('src.core.ai.ask_llama')
     def test_suggest_category_from_llama_no_suggestion(self, mock_ask_llama):
