@@ -14,6 +14,10 @@ from .handle_new_category_name import handle_new_category_name
 from .handle_payment_method import handle_payment_method
 
 ALL_HANDLERS = {
-    handle_new_category_name, handle_confirmation, handle_category_clarification, handle_correction, 
-    handle_initial_message, handle_payment_method
+    handle_new_category_name,
+    handle_confirmation,
+    handle_category_clarification,
+    handle_correction,
+    handle_initial_message,
+    handle_payment_method,
 }

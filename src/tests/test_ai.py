@@ -59,31 +59,31 @@ class TestArtificialIntelligence(unittest.TestCase):
         mock_ask_llama.return_value = f'{{"intencao": "gasto", "valor": 50.0, "categoria": "Mercado", "data": "{self.today_str}", "forma_pagamento": "pix", "descricao_gasto": "Compras no mercado"}}'
         info = ai.extract_transaction_info("gastei 50 no mercado no pix")
         self.assertIsNotNone(info)
-        self.assertEqual(info['intencao'], 'gasto')
-        self.assertEqual(info['value'], 50.0)
-        self.assertEqual(info['categoria'], 'Mercado')
-        self.assertEqual(info['date'], self.today_str)
-        self.assertEqual(info['forma_pagamento'], 'pix')
-        self.assertEqual(info['descricao_gasto'], 'Compras no mercado')
+        self.assertEqual(info["intencao"], "gasto")
+        self.assertEqual(info["value"], 50.0)
+        self.assertEqual(info["categoria"], "Mercado")
+        self.assertEqual(info["date"], self.today_str)
+        self.assertEqual(info["forma_pagamento"], "pix")
+        self.assertEqual(info["descricao_gasto"], "Compras no mercado")
 
     @patch("src.core.ai.ask_llama")
     def test_extract_transaction_info_ganho(self, mock_ask_llama):
         mock_ask_llama.return_value = f'{{"intencao": "ganho", "valor": 1000.0, "descricao": "Salário", "data": "{self.last_month_end_str}"}}'
         info = ai.extract_transaction_info("recebi meu salário de 1000 mês passado")
         self.assertIsNotNone(info)
-        self.assertEqual(info['intencao'], 'ganho')
-        self.assertEqual(info['value'], 1000.0)
-        self.assertEqual(info['description'], 'Salário')
-        self.assertEqual(info['date'], self.last_month_end_str)
+        self.assertEqual(info["intencao"], "ganho")
+        self.assertEqual(info["value"], 1000.0)
+        self.assertEqual(info["description"], "Salário")
+        self.assertEqual(info["date"], self.last_month_end_str)
 
     @patch("src.core.ai.ask_llama")
     def test_extract_transaction_info_adicionar_categoria(self, mock_ask_llama):
         mock_ask_llama.return_value = '{"intencao": "adicionar_categoria", "categoria_nome": "Lazer", "monthly_limit": 300.0}'
         info = ai.extract_transaction_info("adicione categoria lazer com limite de 300")
         self.assertIsNotNone(info)
-        self.assertEqual(info['intencao'], 'adicionar_categoria')
-        self.assertEqual(info['categoria_nome'], 'Lazer')
-        self.assertEqual(info['monthly_limit'], 300.0)
+        self.assertEqual(info["intencao"], "adicionar_categoria")
+        self.assertEqual(info["categoria_nome"], "Lazer")
+        self.assertEqual(info["monthly_limit"], 300.0)
 
     @patch("src.core.ai.ask_llama")
     def test_extract_transaction_info_grafico_categoria_com_filtro(
@@ -114,7 +114,7 @@ class TestArtificialIntelligence(unittest.TestCase):
         mock_ask_llama.return_value = '{"intencao": "gasto", "valor": "18,50", "categoria": "Transporte", "data": "2025-07-07", "forma_pagamento": "débito", "descricao_gasto": "Corrida"}'
         info = ai.extract_transaction_info("gastei 18,50 no debito")
         self.assertIsNotNone(info)
-        self.assertEqual(info['value'], 18.50)
+        self.assertEqual(info["value"], 18.50)
 
     # --- Testes para suggest_category_from_llama ---
     @patch("src.core.ai.ask_llama")

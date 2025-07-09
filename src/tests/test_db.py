@@ -15,7 +15,7 @@ class TestDatabase(unittest.TestCase):
         # Configurar o mock para encadeamento de chamadas:
         # supabase.table('name').insert({...}).execute()
         # supabase.table('name').select(...).eq(...).order(...).execute()
-        
+
         # O retorno de table() deve ser um mock que possui os métodos de CRUD (insert, select, etc.)
         # E o retorno de insert(), select(), eq(), order(), limit(), update() deve ser um mock que tem .execute()
 
@@ -65,21 +65,36 @@ class TestDatabase(unittest.TestCase):
     # --- Testes para add_gasto ---
     def test_add_gasto_success(self):
         # Use o mock correto para a resposta do execute
-        self.mock_table_methods.insert.return_value.execute.return_value = MagicMock(data=[{'id': str(uuid.uuid4())}]) 
-        result = db.add_expense(self.mock_supabase_client, 100.0, str(uuid.uuid4()), "2025-07-01", str(uuid.uuid4()), "Compras no mercado")
+        self.mock_table_methods.insert.return_value.execute.return_value = MagicMock(
+            data=[{"id": str(uuid.uuid4())}]
+        )
+        result = db.add_expense(
+            self.mock_supabase_client,
+            100.0,
+            str(uuid.uuid4()),
+            "2025-07-01",
+            str(uuid.uuid4()),
+            "Compras no mercado",
+        )
         self.assertTrue(result)
-        self.mock_supabase_client.table.assert_called_with('expenses')
-        self.mock_table_methods.insert.assert_called_once() # Chama no mock_table_methods
-        args, kwargs = self.mock_table_methods.insert.call_args # Pega args do mock_table_methods.insert
-        self.assertIn('value', args[0])
-        self.assertIn('category_id', args[0])
-        self.assertIn('date', args[0])
-        self.assertIn('forma_pagamento_id', args[0])
-        self.assertIn('description', args[0])
+        self.mock_supabase_client.table.assert_called_with("expenses")
+        self.mock_table_methods.insert.assert_called_once()  # Chama no mock_table_methods
+        args, kwargs = (
+            self.mock_table_methods.insert.call_args
+        )  # Pega args do mock_table_methods.insert
+        self.assertIn("value", args[0])
+        self.assertIn("category_id", args[0])
+        self.assertIn("date", args[0])
+        self.assertIn("forma_pagamento_id", args[0])
+        self.assertIn("description", args[0])
 
     def test_add_gasto_failure(self):
-        self.mock_table_methods.insert.return_value.execute.side_effect = Exception("DB error") # Simula falha no execute
-        result = db.add_expense(self.mock_supabase_client, 100.0, str(uuid.uuid4()), "2025-07-01")
+        self.mock_table_methods.insert.return_value.execute.side_effect = Exception(
+            "DB error"
+        )  # Simula falha no execute
+        result = db.add_expense(
+            self.mock_supabase_client, 100.0, str(uuid.uuid4()), "2025-07-01"
+        )
         self.assertFalse(result)
 
     # --- Testes para get_gastos ---
@@ -90,18 +105,24 @@ class TestDatabase(unittest.TestCase):
 
     def test_get_gastos_with_data(self):
         mock_data = [
-            {'value': 50.0, 'category_id': 'cat1', 'date': '2025-07-01', 'description': 'Cafe',
-             'payment_methods': {'name': 'Pix'}, 'categories': {'name': 'Alimentacao'}},
+            {
+                "value": 50.0,
+                "category_id": "cat1",
+                "date": "2025-07-01",
+                "description": "Cafe",
+                "payment_methods": {"name": "Pix"},
+                "categories": {"name": "Alimentacao"},
+            },
         ]
         self.mock_table_methods.select.return_value.execute.return_value.data = (
             mock_data
         )
         gastos = db.get_gastos(self.mock_supabase_client)
         self.assertEqual(len(gastos), 1)
-        self.assertEqual(gastos[0]['value'], 50.0)
-        self.assertEqual(gastos[0]['categoria_nome'], 'Alimentacao')
-        self.assertEqual(gastos[0]['forma_pagamento_nome'], 'Pix')
-        self.assertNotIn('categories', gastos[0])
+        self.assertEqual(gastos[0]["value"], 50.0)
+        self.assertEqual(gastos[0]["categoria_nome"], "Alimentacao")
+        self.assertEqual(gastos[0]["forma_pagamento_nome"], "Pix")
+        self.assertNotIn("categories", gastos[0])
 
     # --- Testes para add_ganho ---
     def test_add_ganho_success(self):
@@ -126,21 +147,29 @@ class TestDatabase(unittest.TestCase):
         "src.utils.text_utils.to_camel_case", side_effect=lambda x: x.replace(" ", "")
     )  # Mock to_camel_case
     def test_add_categoria_success(self, mock_to_camel_case):
-        self.mock_table_methods.select.return_value.eq.return_value.execute.return_value = MagicMock(data=[]) # no existing category check
-        self.mock_table_methods.insert.return_value.execute.return_value = MagicMock(data=[{'id': 'cat-id-123'}]) # after insert
-        
-        result = db.add_category(self.mock_supabase_client, "nova categoria", 500.0, ["nova", "cat"])
+        self.mock_table_methods.select.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[]
+        )  # no existing category check
+        self.mock_table_methods.insert.return_value.execute.return_value = MagicMock(
+            data=[{"id": "cat-id-123"}]
+        )  # after insert
+
+        result = db.add_category(
+            self.mock_supabase_client, "nova categoria", 500.0, ["nova", "cat"]
+        )
         self.assertTrue(result)
-        self.mock_supabase_client.table.assert_called_with('categories')
+        self.mock_supabase_client.table.assert_called_with("categories")
         self.mock_table_methods.insert.assert_called_once()
         args, _ = self.mock_table_methods.insert.call_args
-        self.assertEqual(args[0]['name'], "NovaCategoria")
+        self.assertEqual(args[0]["name"], "NovaCategoria")
 
     @patch(
         "src.utils.text_utils.to_camel_case", side_effect=lambda x: x.replace(" ", "")
     )
     def test_add_categoria_exists(self, mock_to_camel_case):
-        self.mock_table_methods.select.return_value.eq.return_value.execute.return_value = MagicMock(data=[{'id': 'cat-id-existing'}]) # Category exists
+        self.mock_table_methods.select.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[{"id": "cat-id-existing"}]
+        )  # Category exists
         result = db.add_category(self.mock_supabase_client, "existente", 100.0)
         self.assertFalse(result)
 
@@ -152,33 +181,64 @@ class TestDatabase(unittest.TestCase):
 
     def test_get_categorias_with_data(self):
         mock_data = [
-            {'id': 'cat1', 'name': 'Alimentacao', 'monthly_limit': 800.0, 'aliases': ['food', 'grocery']},
-            {'id': 'cat2', 'name': 'Transporte', 'monthly_limit': None, 'aliases': None}
+            {
+                "id": "cat1",
+                "name": "Alimentacao",
+                "monthly_limit": 800.0,
+                "aliases": ["food", "grocery"],
+            },
+            {
+                "id": "cat2",
+                "name": "Transporte",
+                "monthly_limit": None,
+                "aliases": None,
+            },
         ]
         self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = mock_data
         categorias = db.get_categories(self.mock_supabase_client)
         self.assertEqual(len(categorias), 2)
-        self.assertEqual(categorias[0]['name'], 'Alimentacao')
+        self.assertEqual(categorias[0]["name"], "Alimentacao")
 
     # --- Testes para get_category_id_by_text ---
-    @patch('src.core.db.get_categorias')
-    @patch('src.utils.text_utils.to_camel_case', side_effect=lambda x: ''.join(word.capitalize() for word in x.split()))
-    def test_get_category_id_by_text_exact_name(self, mock_to_camel_case, mock_get_categorias):
-        mock_get_categorias.return_value = [{'id': 'cat1', 'name': 'Alimentacao', 'aliases': []}]
+    @patch("src.core.db.get_categorias")
+    @patch(
+        "src.utils.text_utils.to_camel_case",
+        side_effect=lambda x: "".join(word.capitalize() for word in x.split()),
+    )
+    def test_get_category_id_by_text_exact_name(
+        self, mock_to_camel_case, mock_get_categorias
+    ):
+        mock_get_categorias.return_value = [
+            {"id": "cat1", "name": "Alimentacao", "aliases": []}
+        ]
         cat_id = db.get_category_id_by_text(self.mock_supabase_client, "Alimentacao")
-        self.assertEqual(cat_id, 'cat1')
+        self.assertEqual(cat_id, "cat1")
 
-    @patch('src.core.db.get_categorias')
-    @patch('src.utils.text_utils.to_camel_case', side_effect=lambda x: ''.join(word.capitalize() for word in x.split()))
-    def test_get_category_id_by_text_alias(self, mock_to_camel_case, mock_get_categorias):
-        mock_get_categorias.return_value = [{'id': 'cat1', 'name': 'Alimentacao', 'aliases': ['mercado', 'comida']}]
+    @patch("src.core.db.get_categorias")
+    @patch(
+        "src.utils.text_utils.to_camel_case",
+        side_effect=lambda x: "".join(word.capitalize() for word in x.split()),
+    )
+    def test_get_category_id_by_text_alias(
+        self, mock_to_camel_case, mock_get_categorias
+    ):
+        mock_get_categorias.return_value = [
+            {"id": "cat1", "name": "Alimentacao", "aliases": ["mercado", "comida"]}
+        ]
         cat_id = db.get_category_id_by_text(self.mock_supabase_client, "mercado")
-        self.assertEqual(cat_id, 'cat1')
+        self.assertEqual(cat_id, "cat1")
 
-    @patch('src.core.db.get_categorias')
-    @patch('src.utils.text_utils.to_camel_case', side_effect=lambda x: ''.join(word.capitalize() for word in x.split()))
-    def test_get_category_id_by_text_not_found(self, mock_to_camel_case, mock_get_categorias):
-        mock_get_categorias.return_value = [{'id': 'cat1', 'name': 'Alimentacao', 'aliases': []}]
+    @patch("src.core.db.get_categorias")
+    @patch(
+        "src.utils.text_utils.to_camel_case",
+        side_effect=lambda x: "".join(word.capitalize() for word in x.split()),
+    )
+    def test_get_category_id_by_text_not_found(
+        self, mock_to_camel_case, mock_get_categorias
+    ):
+        mock_get_categorias.return_value = [
+            {"id": "cat1", "name": "Alimentacao", "aliases": []}
+        ]
         cat_id = db.get_category_id_by_text(self.mock_supabase_client, "Inexistente")
         self.assertIsNone(cat_id)
 
@@ -189,20 +249,24 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(formas, [])
 
     def test_get_formas_pagamento_with_data(self):
-        mock_data = [{'id': 'fp1', 'name': 'Pix'}, {'id': 'fp2', 'name': 'Credito'}]
+        mock_data = [{"id": "fp1", "name": "Pix"}, {"id": "fp2", "name": "Credito"}]
         self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = mock_data
         formas = db.get_formas_pagamento(self.mock_supabase_client)
         self.assertEqual(len(formas), 2)
-        self.assertEqual(formas[0]['name'], 'Pix')
+        self.assertEqual(formas[0]["name"], "Pix")
 
     # --- Testes para get_forma_pagamento_id_by_name ---
     def test_get_forma_pagamento_id_by_name_success(self):
-        self.mock_table_methods.select.return_value.execute.return_value.data = [{'id': 'fp1', 'name': 'Pix'}]
+        self.mock_table_methods.select.return_value.execute.return_value.data = [
+            {"id": "fp1", "name": "Pix"}
+        ]
         fp_id = db.get_forma_pagamento_id_by_name(self.mock_supabase_client, "Pix")
         self.assertEqual(fp_id, "fp1")
 
     def test_get_forma_pagamento_id_by_name_case_insensitive(self):
-        self.mock_table_methods.select.return_value.execute.return_value.data = [{'id': 'fp1', 'name': 'Pix'}]
+        self.mock_table_methods.select.return_value.execute.return_value.data = [
+            {"id": "fp1", "name": "Pix"}
+        ]
         fp_id = db.get_forma_pagamento_id_by_name(self.mock_supabase_client, "pix")
         self.assertEqual(fp_id, "fp1")
 
@@ -213,12 +277,18 @@ class TestDatabase(unittest.TestCase):
 
     # --- Testes para update_categoria_limite ---
     def test_update_categoria_limite_success(self):
-        self.mock_table_methods.update.return_value.eq.return_value.execute.return_value = MagicMock(data=[{'id': 'cat1', 'monthly_limit': 100.0}])
-        result = db.update_categoria_limite(self.mock_supabase_client, 'cat1', 100.0)
+        self.mock_table_methods.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[{"id": "cat1", "monthly_limit": 100.0}]
+        )
+        result = db.update_categoria_limite(self.mock_supabase_client, "cat1", 100.0)
         self.assertTrue(result)
 
     # --- Testes para update_categoria_aliases ---
     def test_update_categoria_aliases_success(self):
-        self.mock_table_methods.update.return_value.eq.return_value.execute.return_value = MagicMock(data=[{'id': 'cat1', 'aliases': ['alias1']}])
-        result = db.update_category_aliases(self.mock_supabase_client, 'cat1', ['alias1'])
+        self.mock_table_methods.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[{"id": "cat1", "aliases": ["alias1"]}]
+        )
+        result = db.update_category_aliases(
+            self.mock_supabase_client, "cat1", ["alias1"]
+        )
         self.assertTrue(result)

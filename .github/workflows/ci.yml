@@ -56,7 +56,7 @@ jobs:
 
       - name: Rodar Testes Unitários
         run: |
-          # Certifique-se que seus testes unitários estão na pasta 'tests/'
+          # Certifique-se que seus testes unitários estão na pasta 'src/tests/'
           # E que o comando 'python -m unittest discover tests' funciona localmente.
           python -m unittest discover src/tests/
         env:

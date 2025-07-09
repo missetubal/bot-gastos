@@ -77,9 +77,10 @@ def extract_transaction_info(
 
     # Pega as categorias existentes para passar ao Gemini
     try:
-        from src.core.db import get_categories # Importação local para evitar ciclo
+        from src.core.db import get_categories  # Importação local para evitar ciclo
+
         existing_categories_data = get_categories(supabase_client)
-        existing_category_names = [cat['name'] for cat in existing_categories_data]
+        existing_category_names = [cat["name"] for cat in existing_categories_data]
     except Exception as e:
         print(f"Erro ao obter categorias para o prompt do Gemini: {e}")
         existing_category_names = [
@@ -199,7 +200,7 @@ def extract_transaction_info(
             )
 
             data = json.loads(json_str)
-            for key in ['value', 'monthly_limit']:
+            for key in ["value", "monthly_limit"]:
                 if key in data and isinstance(data[key], str):
                     try:
                         data[key] = float(data[key].replace(",", "."))
@@ -308,7 +309,9 @@ def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
                 ]
             )
             data = json.loads(json_str)
-            if data.get('campo', '').lower() == 'value' and isinstance(data.get('novo_valor'), str):
+            if data.get("campo", "").lower() == "value" and isinstance(
+                data.get("novo_valor"), str
+            ):
                 try:
                     data["novo_valor"] = float(data["novo_valor"].replace(",", "."))
                 except ValueError:
