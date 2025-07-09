@@ -5,6 +5,7 @@ import requests
 import json
 import datetime
 from supabase import Client # Importar Client para tipagem do mock
+from src.core import ai
 
 class TestArtificialIntelligence(unittest.TestCase):
 
@@ -47,7 +48,7 @@ class TestArtificialIntelligence(unittest.TestCase):
     @patch('src.core.ai.ask_llama') # Mock ask_llama aqui
     @patch('src.core.db.get_categorias') # Mock get_categorias para não chamar o DB real
     def test_extract_transaction_info_gasto_completo(self, mock_get_categorias, mock_ask_llama):
-        mock_get_categorias.return_value = [{'nome': 'Alimentacao'}, {'nome': 'Transporte'}] # Exemplo de retorno
+        mock_get_categorias.return_value = [{'name': 'Alimentacao'}, {'name': 'Transporte'}] # Exemplo de retorno
         mock_ask_llama.return_value = f'{{"intencao": "gasto", "valor": 50.0, "categoria": "Mercado", "data": "{self.today_str}", "forma_pagamento": "pix", "descricao_gasto": "Compras no mercado"}}'
         
         # Passa self.mock_supabase_client como o segundo argumento
@@ -89,7 +90,7 @@ class TestArtificialIntelligence(unittest.TestCase):
     @patch('src.core.ai.ask_llama')
     @patch('src.core.db.get_categorias')
     def test_extract_transaction_info_grafico_categoria_com_filtro(self, mock_get_categorias, mock_ask_llama):
-        mock_get_categorias.return_value = [{'nome': 'Alimentacao'}, {'nome': 'Transporte'}]
+        mock_get_categorias.return_value = [{'name': 'Alimentacao'}, {'name': 'Transporte'}]
         mock_ask_llama.return_value = f'{{"intencao": "mostrar_grafico_gastos_categoria", "forma_pagamento": "crédito", "data_inicio": "{self.current_month_start_str}", "data_fim": "{self.current_month_end_str}"}}'
         info = ai.extract_transaction_info("gastos por categoria no crédito este mês", self.mock_supabase_client)
         self.assertIsNotNone(info)
