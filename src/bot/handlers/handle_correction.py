@@ -90,7 +90,7 @@ async def handle_correction(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             )
             return ASKING_CORRECTION
     elif campo.lower() == "forma" or campo.lower() == "forma_pagamento":
-        nova_forma_id = db.get_forma_pagamento_id_by_name(
+        nova_forma_id = db.get_payment_method_id_by_name(
             supabase_client, str(novo_valor)
         )
         if nova_forma_id:

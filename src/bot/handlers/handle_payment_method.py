@@ -30,7 +30,7 @@ async def handle_payment_method(
     descricao_gasto = pending_transaction["descricao_gasto"]
 
     final_payment_method_name = to_camel_case(user_response_payment)
-    forma_pagamento_id = db.get_forma_pagamento_id_by_name(
+    forma_pagamento_id = db.get_payment_method_id_by_name(
         supabase_client, final_payment_method_name
     )
 
@@ -67,7 +67,7 @@ async def handle_payment_method(
                 )
 
         if not forma_pagamento_id:
-            forma_pagamento_id = db.get_forma_pagamento_id_by_name(
+            forma_pagamento_id = db.get_payment_method_id_by_name(
                 supabase_client, "NaoInformado"
             )
             final_payment_method_name = (

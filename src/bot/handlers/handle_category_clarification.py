@@ -64,7 +64,7 @@ async def handle_category_clarification(
         forma_pagamento_nome_real = None
         if forma_pagamento_text:
             forma_pagamento_normalizada = to_camel_case(forma_pagamento_text)
-            formas_pagamento_db_info = db.get_formas_pagamento(supabase_client)
+            formas_pagamento_db_info = db.get_payment_methods(supabase_client)
             for fp in formas_pagamento_db_info:
                 if fp["name"] == forma_pagamento_normalizada:
                     forma_pagamento_id = fp["id"]
@@ -72,7 +72,7 @@ async def handle_category_clarification(
                     break
 
         if not forma_pagamento_id:
-            formas_pagamento_disponiveis = db.get_formas_pagamento(supabase_client)
+            formas_pagamento_disponiveis = db.get_payment_methods(supabase_client)
             keyboard_options = [[fp["name"]] for fp in formas_pagamento_disponiveis]
             keyboard_options.append(["Outro / Não sei ❓"])
             reply_markup = ReplyKeyboardMarkup(

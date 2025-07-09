@@ -77,7 +77,7 @@ async def handle_initial_message(
 
         # Para gastos, prepare mais dados para o user_data
         if intencao == "gasto":
-            valor = float(parsed_info["value"])
+            valor = float(parsed_info["valor"])
             data = parsed_info.get("date", str(datetime.date.today()))
             categoria_texto_llama = parsed_info.get("categoria", "Outros") or "Outros"
             forma_pagamento_text = parsed_info.get("forma_pagamento")
@@ -134,7 +134,7 @@ async def handle_initial_message(
             forma_pagamento_nome_real = None
             if forma_pagamento_text:
                 forma_pagamento_normalizada = to_camel_case(forma_pagamento_text)
-                formas_pagamento_db_info = db.get_formas_pagamento(supabase_client)
+                formas_pagamento_db_info = db.get_payment_methods(supabase_client)
                 for fp in formas_pagamento_db_info:
                     if fp["name"] == forma_pagamento_normalizada:
                         forma_pagamento_id = fp["id"]
@@ -142,7 +142,7 @@ async def handle_initial_message(
                         break
 
             if not forma_pagamento_id:
-                formas_pagamento_disponiveis = db.get_formas_pagamento(supabase_client)
+                formas_pagamento_disponiveis = db.get_payment_methods(supabase_client)
                 keyboard_options = [[fp["name"]] for fp in formas_pagamento_disponiveis]
                 keyboard_options.append(["Outro / Não sei ❓"])
                 reply_markup = ReplyKeyboardMarkup(
@@ -194,7 +194,7 @@ async def handle_initial_message(
             forma_pagamento_text = parsed_info.get("forma_pagamento")
             if forma_pagamento_text:
                 forma_pagamento_normalizada = to_camel_case(forma_pagamento_text)
-                forma_pagamento_id = db.get_forma_pagamento_id_by_name(
+                forma_pagamento_id = db.get_payment_method_id_by_name(
                     supabase_client, forma_pagamento_normalizada
                 )
                 if not forma_pagamento_id:

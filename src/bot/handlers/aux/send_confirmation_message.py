@@ -38,7 +38,7 @@ async def send_confirmation_message(
         fp_info = next(
             (
                 f
-                for f in db.get_formas_pagamento(supabase_client)
+                for f in db.get_payment_methods(supabase_client)
                 if f["id"] == transaction_info["forma_pagamento_id"]
             ),
             None,
