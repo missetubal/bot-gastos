@@ -22,11 +22,11 @@ async def handle_new_category_name(
         )
         return ConversationHandler.END
 
-    valor = pending_transaction["value"]
-    data = pending_transaction["date"]
-    original_category_text = pending_transaction["original_category_text"]
+    # valor = pending_transaction["value"]
+    # data = pending_transaction["date"]
+    # original_category_text = pending_transaction["original_category_text"]
     forma_pagamento_text = pending_transaction["forma_pagamento_text"]
-    descricao_gasto = pending_transaction["descricao_gasto"]
+    # descricao_gasto = pending_transaction["descricao_gasto"]
 
     if db.add_category(supabase_client, new_category_name_input, monthly_limit=None):
         new_category_name_camel_case = to_camel_case(new_category_name_input)

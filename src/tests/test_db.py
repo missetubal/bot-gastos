@@ -1,10 +1,11 @@
+import uuid 
 import unittest
 from unittest.mock import MagicMock, patch
 from supabase import Client  # Importar para tipagem do mock
-import uuid  # Para simular IDs UUID
 
 # Importar o módulo db para testar suas funções
 from src.core import db
+
 
 class TestDatabase(unittest.TestCase):
     def setUp(self):
@@ -33,82 +34,102 @@ class TestDatabase(unittest.TestCase):
 
         # Finalmente, configuramos supabase_client.table() para retornar o mock_table_methods
         self.mock_supabase_client.table.return_value = self.mock_table_methods
-        
+
         # Valores de retorno padrão para o .execute() (para que a maioria dos testes passe por default)
         # Estes são os retornos do self.mock_execute (que é o que execute() retorna)
-        self.mock_execute.return_value = MagicMock(data=[]) # Default para lista vazia (para select)
+        self.mock_execute.return_value = MagicMock(
+            data=[]
+        )  # Default para lista vazia (para select)
 
     # --- Testes para add_expense ---
     def test_add_expense_success_full_data(self):
         # Simula uma resposta de sucesso do Supabase (retorna dados inseridos)
-        mock_response_data = [{'id': str(uuid.uuid4()), 'value': 150.0, 'category_id': str(uuid.uuid4()), 
-                               'date': '2025-07-10', 'payment_method_id': str(uuid.uuid4()), 'description': 'Jantar'}]
+        mock_response_data = [
+            {
+                "id": str(uuid.uuid4()),
+                "value": 150.0,
+                "category_id": str(uuid.uuid4()),
+                "date": "2025-07-10",
+                "payment_method_id": str(uuid.uuid4()),
+                "description": "Jantar",
+            }
+        ]
         # Configure o retorno do execute() do mock_table_methods.insert
         self.mock_execute.return_value = MagicMock(data=mock_response_data)
-        
+
         # IDs de exemplo
         test_category_id = str(uuid.uuid4())
         test_payment_method_id = str(uuid.uuid4())
 
-        result = db.add_expense( # Chama sua função add_expense
+        result = db.add_expense(  # Chama sua função add_expense
             self.mock_supabase_client,
             value=150.0,
             category_id=test_category_id,
             date="2025-07-10",
             payment_method_id=test_payment_method_id,
-            description="Jantar com amigos"
+            description="Jantar com amigos",
         )
-        self.assertTrue(result) # Espera que a função retorne True
-        
+        self.assertTrue(result)  # Espera que a função retorne True
+
         # Verifica se 'table' foi chamado com 'expenses'
-        self.mock_supabase_client.table.assert_called_with('expenses') 
+        self.mock_supabase_client.table.assert_called_with("expenses")
         # Verifica se 'insert' foi chamado NO MOCK RETORNADO POR TABLE()
-        self.mock_table_methods.insert.assert_called_once() 
-        
+        self.mock_table_methods.insert.assert_called_once()
+
         # Verifica os argumentos passados para insert
         args, kwargs = self.mock_table_methods.insert.call_args
         inserted_data = args[0]
-        self.assertEqual(inserted_data['value'], 150.0)
-        self.assertEqual(inserted_data['category_id'], test_category_id)
-        self.assertEqual(inserted_data['date'], "2025-07-10")
-        self.assertEqual(inserted_data['payment_method_id'], test_payment_method_id)
-        self.assertEqual(inserted_data['description'], "Jantar com amigos")
+        self.assertEqual(inserted_data["value"], 150.0)
+        self.assertEqual(inserted_data["category_id"], test_category_id)
+        self.assertEqual(inserted_data["date"], "2025-07-10")
+        self.assertEqual(inserted_data["payment_method_id"], test_payment_method_id)
+        self.assertEqual(inserted_data["description"], "Jantar com amigos")
 
     def test_add_expense_success_minimal_data(self):
-        mock_response_data = [{'id': str(uuid.uuid4()), 'value': 25.0, 'category_id': str(uuid.uuid4()), 'date': '2025-07-11'}]
+        mock_response_data = [
+            {
+                "id": str(uuid.uuid4()),
+                "value": 25.0,
+                "category_id": str(uuid.uuid4()),
+                "date": "2025-07-11",
+            }
+        ]
         self.mock_execute.return_value = MagicMock(data=mock_response_data)
-        
+
         test_category_id = str(uuid.uuid4())
 
-        result = db.add_expense( # Chama sua função add_expense
+        result = db.add_expense(  # Chama sua função add_expense
             self.mock_supabase_client,
             value=25.0,
             category_id=test_category_id,
-            date="2025-07-11"
+            date="2025-07-11",
         )
         self.assertTrue(result)
         self.mock_table_methods.insert.assert_called_once()
         args, kwargs = self.mock_table_methods.insert.call_args
         inserted_data = args[0]
-        self.assertIsNone(inserted_data['payment_method_id'])
-        self.assertIsNone(inserted_data['description'])
+        self.assertIsNone(inserted_data["payment_method_id"])
+        self.assertIsNone(inserted_data["description"])
 
     def test_add_expense_failure(self):
-        self.mock_table_methods.insert.return_value.execute.side_effect = Exception("Database connection error")
-        
-        result = db.add_expense( # Chama sua função add_expense
+        self.mock_table_methods.insert.return_value.execute.side_effect = Exception(
+            "Database connection error"
+        )
+
+        result = db.add_expense(  # Chama sua função add_expense
             self.mock_supabase_client,
             value=50.0,
             category_id=str(uuid.uuid4()),
-            date="2025-07-12"
+            date="2025-07-12",
         )
         self.assertFalse(result)
         self.mock_table_methods.insert.assert_called_once()
 
-
     # --- Testes para get_gastos ---
     def test_get_gastos_empty(self):
-        self.mock_table_methods.select.return_value.order.return_value.execute.return_value = MagicMock(data=[])
+        self.mock_table_methods.select.return_value.order.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
         gastos = db.get_gastos(self.mock_supabase_client)
         self.assertEqual(gastos, [])
 
@@ -123,8 +144,10 @@ class TestDatabase(unittest.TestCase):
                 "categories": {"name": "Alimentacao"},
             },
         ]
-        self.mock_table_methods.select.return_value.order.return_value.execute.return_value = MagicMock(data=mock_data)
-        
+        self.mock_table_methods.select.return_value.order.return_value.execute.return_value = MagicMock(
+            data=mock_data
+        )
+
         gastos = db.get_gastos(self.mock_supabase_client)
         self.assertEqual(len(gastos), 1)
         self.assertEqual(gastos[0]["value"], 50.0)
@@ -146,7 +169,9 @@ class TestDatabase(unittest.TestCase):
 
     # --- Testes para get_ganhos ---
     def test_get_ganhos_empty(self):
-        self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = []
+        self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = (
+            []
+        )
         ganhos = db.get_ganhos(self.mock_supabase_client)
         self.assertEqual(ganhos, [])
 
@@ -182,7 +207,9 @@ class TestDatabase(unittest.TestCase):
 
     # --- Testes para get_categories ---
     def test_get_categories_empty(self):
-        self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = []
+        self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = (
+            []
+        )
         categorias = db.get_categories(self.mock_supabase_client)
         self.assertEqual(categorias, [])
 
@@ -201,7 +228,9 @@ class TestDatabase(unittest.TestCase):
                 "aliases": None,
             },
         ]
-        self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = mock_data
+        self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = (
+            mock_data
+        )
         categorias = db.get_categories(self.mock_supabase_client)
         self.assertEqual(len(categorias), 2)
         self.assertEqual(categorias[0]["nome"], "Alimentacao")
@@ -251,13 +280,17 @@ class TestDatabase(unittest.TestCase):
 
     # --- Testes para get_formas_pagamento ---
     def test_get_formas_pagamento_empty(self):
-        self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = []
+        self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = (
+            []
+        )
         formas = db.get_payment_methods(self.mock_supabase_client)
         self.assertEqual(formas, [])
 
     def test_get_formas_pagamento_with_data(self):
         mock_data = [{"id": "fp1", "name": "Pix"}, {"id": "fp2", "name": "Credito"}]
-        self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = mock_data
+        self.mock_table_methods.select.return_value.order.return_value.execute.return_value.data = (
+            mock_data
+        )
         formas = db.get_payment_methods(self.mock_supabase_client)
         self.assertEqual(len(formas), 2)
         self.assertEqual(formas[0]["name"], "Pix")

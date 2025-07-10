@@ -27,12 +27,12 @@ async def handle_category_clarification(
         )
         return ConversationHandler.END
 
-    valor = pending_transaction["value"]
-    data = pending_transaction["date"]
-    original_category_text = pending_transaction["original_category_text"]
+    # valor = pending_transaction["value"]
+    # data = pending_transaction["date"]
+    # original_category_text = pending_transaction["original_category_text"]
     suggestions = pending_transaction["suggestions"]
     forma_pagamento_text = pending_transaction["forma_pagamento_text"]
-    descricao_gasto = pending_transaction["descricao_gasto"]
+    # descricao_gasto = pending_transaction["descricao_gasto"]
 
     chosen_category_id = None
     chosen_category_name = None
@@ -111,8 +111,8 @@ async def handle_category_clarification(
 
     else:
         await update.message.reply_text(
-            f"🤔 Não entendi sua resposta. Por favor, digite o nome exato de uma das sugestões, "
-            f"ou 'Criar nova categoria ➕' ou 'Não se aplica / Outra 🤷‍♀️'.",
+            "🤔 Não entendi sua resposta. Por favor, digite o nome exato de uma das sugestões, "
+            "ou 'Criar nova categoria ➕' ou 'Não se aplica / Outra 🤷‍♀️'.",
             reply_markup=ReplyKeyboardRemove(),
         )
         return ASKING_CATEGORY_CLARIFICATION

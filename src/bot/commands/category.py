@@ -1,7 +1,7 @@
+from typing import Union
 from telegram import Update
 from telegram.ext import ContextTypes
 from src.core import db
-from typing import Union
 from src.utils.text_utils import to_camel_case
 
 

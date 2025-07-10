@@ -1,7 +1,7 @@
 from typing import Any, Dict
-from src.core import db
-from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import ContextTypes
+from telegram import Update, ReplyKeyboardRemove
+from src.core import db
 
 
 async def register_income(

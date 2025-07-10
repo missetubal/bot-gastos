@@ -1,4 +1,4 @@
-from telegram import ReplyKeyboardRemove, Update, ReplyKeyboardMarkup
+from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 from src.bot.handlers import ASKING_CONFIRMATION
@@ -22,12 +22,12 @@ async def handle_payment_method(
         )
         return ConversationHandler.END
 
-    valor = pending_transaction["value"]
-    data = pending_transaction["date"]
-    category_id = pending_transaction["category_id"]
-    categoria_nome_db = pending_transaction["categoria_nome_db"]
-    original_category_text = pending_transaction["original_category_text"]
-    descricao_gasto = pending_transaction["descricao_gasto"]
+    # valor = pending_transaction["value"]
+    # data = pending_transaction["date"]
+    # category_id = pending_transaction["category_id"]
+    # categoria_nome_db = pending_transaction["categoria_nome_db"]
+    # original_category_text = pending_transaction["original_category_text"]
+    # descricao_gasto = pending_transaction["descricao_gasto"]
 
     final_payment_method_name = to_camel_case(user_response_payment)
     forma_pagamento_id = db.get_payment_method_id_by_name(
@@ -62,7 +62,7 @@ async def handle_payment_method(
             except Exception as e:
                 print(f"Erro ao adicionar nova forma de pagamento: {e}")
                 await update.message.reply_text(
-                    f"⚠️ Erro ao adicionar nova forma de pagamento. Usando 'Não Informado'. 😕",
+                    "⚠️ Erro ao adicionar nova forma de pagamento. Usando 'Não Informado'. 😕",
                     reply_markup=ReplyKeyboardRemove(),
                 )
 

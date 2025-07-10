@@ -5,6 +5,3 @@ supabase
 requests
 python-dotenv
 google-generativeai 
-gunicorn
-Flask[async]
-uvicorn

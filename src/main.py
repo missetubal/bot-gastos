@@ -1,6 +1,6 @@
 # src/main.py
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
 from src.bot.bot_setup import setup_and_run_bot
 from src.core.db import get_supabase_client  # Importa a função que cria o cliente

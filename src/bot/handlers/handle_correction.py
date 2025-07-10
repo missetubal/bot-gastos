@@ -1,10 +1,10 @@
+import datetime
 from telegram import ReplyKeyboardRemove, Update, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
-import datetime
 
 from src.bot.handlers import ASKING_CONFIRMATION, ASKING_CORRECTION
 from src.bot.handlers.aux import send_confirmation_message
-from src.core.ai import extract_correction_from_llama, extract_transaction_info
+from src.core.ai import extract_correction_from_llama
 from src.core import db
 from src.utils.text_utils import to_camel_case
 

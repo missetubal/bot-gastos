@@ -1,7 +1,7 @@
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ContextTypes, ConversationHandler
 import datetime
 from typing import Union, Dict, Any
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ContextTypes, ConversationHandler
 
 from src.bot.handlers import (
     ASKING_CATEGORY_CLARIFICATION,
@@ -251,7 +251,7 @@ async def handle_initial_message(
             )
         else:
             await update.message.reply_text(
-                f"📉 Ainda não tenho dados suficientes para gerar este gráfico. Registre mais transações primeiro! 📝"
+                "📉 Ainda não tenho dados suficientes para gerar este gráfico. Registre mais transações primeiro! 📝"
             )
 
         return ConversationHandler.END

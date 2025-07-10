@@ -1,11 +1,11 @@
 # src/core/charts.py
+import datetime
+import io
+from typing import Union, Dict, Any, List
 import pandas as pd
 import matplotlib.pyplot as plt
-import io
 import matplotlib.ticker as mticker
-from typing import Union, Dict, Any, List
 from supabase import Client
-import datetime
 
 # Configurações globais para os gráficos (cores, fontes, etc.)
 plt.style.use("seaborn-v0_8-darkgrid")
@@ -452,9 +452,9 @@ def generate_payment_method_spending_chart(
     plt.tight_layout()
     plt.axis("equal")
 
-    wedges, texts, autotexts = ax.pie(
+    wedges = ax.pie(
         gastos_por_forma, autopct="", startangle=90, colors=colors_for_pie
-    )  # <-- Use 'colors' aqui também
+    )
     labels = [f"{name}: R${value:.2f}" for name, value in gastos_por_forma.items()]
     ax.legend(
         wedges,
@@ -471,7 +471,7 @@ def generate_payment_method_spending_chart(
     return buf
 
 
-# --- NOVA FUNÇÃO: Gerar Gráfico de Gastos Mensais por Categoria e Forma de Pagamento ---
+# --- Gerar Gráfico de Gastos Mensais por Categoria e Forma de Pagamento ---
 def generate_monthly_category_payment_chart(
     supabase_client: Client,
     data_inicio: Union[str, None] = None,
