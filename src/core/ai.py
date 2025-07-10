@@ -56,17 +56,17 @@ def extract_transaction_info(
     yesterday_str = (datetime.date.today() - datetime.timedelta(days=1)).strftime(
         "%Y-%m-%d"
     )
-    two_days_ago_str = (datetime.date.today() - datetime.timedelta(days=2)).strftime(
-        "%Y-%m-%d"
-    )
-    last_week_day_str = (datetime.date.today() - datetime.timedelta(days=7)).strftime(
-        "%Y-%m-%d"
-    )
-    current_month_start_str = datetime.date.today().replace(day=1).strftime("%Y-%m-%d")
-    current_month_end_date = (
-        datetime.date.today().replace(day=1) + datetime.timedelta(days=32)
-    ).replace(day=1) - datetime.timedelta(days=1)
-    current_month_end_str = current_month_end_date.strftime("%Y-%m-%d")
+    # two_days_ago_str = (datetime.date.today() - datetime.timedelta(days=2)).strftime(
+    #     "%Y-%m-%d"
+    # )
+    # last_week_day_str = (datetime.date.today() - datetime.timedelta(days=7)).strftime(
+    #     "%Y-%m-%d"
+    # )
+    # current_month_start_str = datetime.date.today().replace(day=1).strftime("%Y-%m-%d")
+    # current_month_end_date = (
+    #     datetime.date.today().replace(day=1) + datetime.timedelta(days=32)
+    # ).replace(day=1) - datetime.timedelta(days=1)
+    # current_month_end_str = current_month_end_date.strftime("%Y-%m-%d")
     last_month_end_date = datetime.date.today().replace(day=1) - datetime.timedelta(
         days=1
     )
@@ -206,7 +206,7 @@ def extract_transaction_info(
                     except ValueError:
                         data[key] = None
             return data
-    except (json.JSONDecodeError, ValueError) as e:
+    except ValueError as e:
         print(
             f"Erro ao decodificar JSON ou converter valor do Gemini: {e}. Resposta bruta: {response_text}"
         )
@@ -214,7 +214,7 @@ def extract_transaction_info(
 
 
 def suggest_category_from_llama(
-    text_from_llama: str, existing_categories: List[str], supabase_client: Client
+    text_from_llama: str, existing_categories: List[str]
 ) -> Union[str, None]:
     """
     Pede ao Gemini para mapear um termo de categoria para uma das categorias existentes.
@@ -316,7 +316,7 @@ def extract_correction_from_llama(text: str) -> Union[Dict[str, Any], None]:
                 except ValueError:
                     pass
             return data
-    except (json.JSONDecodeError, ValueError) as e:
+    except ValueError as e:
         print(
             f"Erro ao decodificar JSON de correção do Gemini: {e}. Resposta bruta: {response_text}"
         )

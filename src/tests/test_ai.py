@@ -1,9 +1,7 @@
 # tests/test_ai.py
+import datetime
 import unittest
 from unittest.mock import patch, MagicMock
-import requests
-import json
-import datetime
 from supabase import Client # Importar Client para tipagem do mock
 from src.core import ai
 

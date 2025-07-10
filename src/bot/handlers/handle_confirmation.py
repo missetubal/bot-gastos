@@ -3,12 +3,10 @@ from telegram.ext import ContextTypes, ConversationHandler
 from src.bot.handlers import (
     ASKING_CONFIRMATION,
     ASKING_CORRECTION,
-    ASKING_PAYMENT_METHOD,
 )
 from src.bot.handlers.aux import (
     register_expense,
     register_income,
-    send_confirmation_message,
 )
 
 

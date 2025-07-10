@@ -96,7 +96,7 @@ def setup_and_run_bot(config: dict):
     application.add_handler(conv_handler)
 
     print(
-        f"Bot Telegram iniciado! Procure por @<nome_do_seu_bot> no Telegram e comece a conversar."
+        "Bot Telegram iniciado! Procure por @<nome_do_seu_bot> no Telegram e comece a conversar."
     )
     print(
         "Certifique-se de que o Ollama está rodando e o modelo 'llama3' (ou o que você configurou) está baixado."

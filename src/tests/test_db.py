@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from supabase import Client  # Importar para tipagem do mock
 import uuid  # Para simular IDs UUID
+from supabase import Client  # Importar para tipagem do mock
 
 # Importar o módulo db para testar suas funções
 from src.core import db
@@ -66,7 +66,7 @@ class TestDatabase(unittest.TestCase):
         self.mock_table_methods.insert.assert_called_once() 
         
         # Verifica os argumentos passados para insert
-        args, kwargs = self.mock_table_methods.insert.call_args
+        args = self.mock_table_methods.insert.call_args
         inserted_data = args[0]
         self.assertEqual(inserted_data['value'], 150.0)
         self.assertEqual(inserted_data['category_id'], test_category_id)
@@ -88,7 +88,7 @@ class TestDatabase(unittest.TestCase):
         )
         self.assertTrue(result)
         self.mock_table_methods.insert.assert_called_once()
-        args, kwargs = self.mock_table_methods.insert.call_args
+        args = self.mock_table_methods.insert.call_args
         inserted_data = args[0]
         self.assertIsNone(inserted_data['payment_method_id'])
         self.assertIsNone(inserted_data['description'])
@@ -173,7 +173,7 @@ class TestDatabase(unittest.TestCase):
     @patch(
         "src.utils.text_utils.to_camel_case", side_effect=lambda x: x.replace(" ", "")
     )
-    def test_add_categoria_exists(self, mock_to_camel_case):
+    def test_add_categoria_exists(self):
         self.mock_table_methods.select.return_value.eq.return_value.execute.return_value = MagicMock(
             data=[{"id": "cat-id-existing"}]
         )  # Category exists
@@ -213,7 +213,7 @@ class TestDatabase(unittest.TestCase):
         side_effect=lambda x: "".join(word.capitalize() for word in x.split()),
     )
     def test_get_categoria_id_by_text_exact_name(
-        self, mock_to_camel_case, mock_get_categories
+        self, mock_get_categories
     ):
         mock_get_categories.return_value = [
             {"id": "cat1", "name": "Alimentacao", "aliases": []}
@@ -227,7 +227,7 @@ class TestDatabase(unittest.TestCase):
         side_effect=lambda x: "".join(word.capitalize() for word in x.split()),
     )
     def test_get_categoria_id_by_text_alias(
-        self, mock_to_camel_case, mock_get_categories
+        self, mock_get_categories
     ):
         mock_get_categories.return_value = [
             {"id": "cat1", "name": "Alimentacao", "aliases": ["mercado", "comida"]}
@@ -241,7 +241,7 @@ class TestDatabase(unittest.TestCase):
         side_effect=lambda x: "".join(word.capitalize() for word in x.split()),
     )
     def test_get_categoria_id_by_text_not_found(
-        self, mock_to_camel_case, mock_get_categories
+        self, mock_get_categories
     ):
         mock_get_categories.return_value = [
             {"id": "cat1", "name": "Alimentacao", "aliases": []}

@@ -54,7 +54,7 @@ def add_expense(
 ) -> bool:
     """Adiciona um novo gasto ao Supabase, incluindo a descrição e forma de pagamento."""
     try:
-        response = (
+        (
             supabase_client.table("expenses")
             .insert(
                 {
@@ -155,7 +155,7 @@ def add_ganho(
 ) -> bool:
     """Adiciona um novo ganho ao Supabase."""
     try:
-        response = (
+        (
             supabase_client.table("ganhos")
             .insert({"value": value, "description": description, "date": date})
             .execute()
@@ -203,7 +203,7 @@ def add_category(
             print(f"Categoria '{name_camel_case}' já existe.")
             return False
 
-        response = (
+        (
             supabase_client.table("categories")
             .insert(
                 {
@@ -337,7 +337,7 @@ def update_categoria_limite(
 ) -> bool:
     """Atualiza o limite mensal de uma categoria."""
     try:
-        response = (
+        (
             supabase_client.table("categories")
             .update({"monthly_limit": new_limit})
             .eq("id", category_id)
@@ -354,7 +354,7 @@ def update_category_aliases(
 ) -> bool:
     """Atualiza os aliases de uma categoria."""
     try:
-        response = (
+        (
             supabase_client.table("categories")
             .update({"aliases": new_aliases})
             .eq("id", category_id)
